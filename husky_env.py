@@ -6,11 +6,16 @@ import numpy as np
 import time
 import random
 
+# Importing observation space functions from perception.py
+from perception import create_observation_space
+from perception import get_observation
+
 class HuskyChaserEnv(gym.Env):
     def __init__(self):
         super(HuskyChaserEnv, self).__init__()
         self.action_space = spaces.Box(low=-1, high=1, shape=(2,), dtype=np.float32)
-        self.observation_space = spaces.Box(low=0, high=255, shape=(64, 64, 3), dtype=np.uint8)
+        # self.observation_space = spaces.Box(low=0, high=255, shape=(64, 64, 3), dtype=np.uint8)
+        self.observation_space = create_observation_space()
         
         # Configuration
         self.boundary = 10  # Fence distance from center
@@ -95,6 +100,8 @@ class HuskyChaserEnv(gym.Env):
         self._drive_husky(self.runner, 3.0, 0.3) # Automated runner
         p.stepSimulation()
         
+        self.get_camera_image() # Display/update camera feed
+
         obs = self._get_obs()
         reward, terminated = self._calculate_reward()
         return obs, reward, terminated, False, {}
@@ -113,7 +120,7 @@ class HuskyChaserEnv(gym.Env):
     #     print(np.array(img).shape) # DEBUGGING
     #     return np.array(img, dtype=np.uint8)[:, :, :3]
     
-    def _get_obs(self): # Updated _get_obs function
+    def get_camera_image(self):
         pos, orn = p.getBasePositionAndOrientation(self.chaser)
 
         rot_matrix = p.getMatrixFromQuaternion(orn)
@@ -152,6 +159,9 @@ class HuskyChaserEnv(gym.Env):
             img = img[:, :, :3]
 
         return img
+    
+    def _get_obs(self):
+        return get_observation(self)
 
     def _drive_husky(self, robot_id, lin_v, ang_v):
         left, right = lin_v - ang_v, lin_v + ang_v
