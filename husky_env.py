@@ -99,18 +99,59 @@ class HuskyChaserEnv(gym.Env):
         reward, terminated = self._calculate_reward()
         return obs, reward, terminated, False, {}
 
-    def _get_obs(self):
+    # def _get_obs(self):
+    #     pos, orn = p.getBasePositionAndOrientation(self.chaser)
+    #     rot_matrix = p.getMatrixFromQuaternion(orn)
+    #     forward = [rot_matrix[0], rot_matrix[3], rot_matrix[6]]
+        
+    #     cam_pos = [pos[0] + forward[0]*0.5, pos[1] + forward[1]*0.5, pos[2] + 0.6]
+    #     target = [pos[0] + forward[0]*3, pos[1] + forward[1]*3, pos[2] + 0.4]
+        
+    #     view_matrix = p.computeViewMatrix(cam_pos, target, [0, 0, 1])
+    #     proj_matrix = p.computeProjectionMatrixFOV(60, 1.0, 0.1, 100.0)
+    #     img = p.getCameraImage(64, 64, view_matrix, proj_matrix)[2]
+    #     print(np.array(img).shape) # DEBUGGING
+    #     return np.array(img, dtype=np.uint8)[:, :, :3]
+    
+    def _get_obs(self): # Updated _get_obs function
         pos, orn = p.getBasePositionAndOrientation(self.chaser)
+
         rot_matrix = p.getMatrixFromQuaternion(orn)
         forward = [rot_matrix[0], rot_matrix[3], rot_matrix[6]]
-        
-        cam_pos = [pos[0] + forward[0]*0.5, pos[1] + forward[1]*0.5, pos[2] + 0.6]
-        target = [pos[0] + forward[0]*3, pos[1] + forward[1]*3, pos[2] + 0.4]
-        
+
+        cam_pos = [
+            pos[0] + forward[0] * 0.5,
+            pos[1] + forward[1] * 0.5,
+            pos[2] + 0.6
+        ]
+
+        target = [
+            pos[0] + forward[0] * 3,
+            pos[1] + forward[1] * 3,
+            pos[2] + 0.4
+        ]
+
         view_matrix = p.computeViewMatrix(cam_pos, target, [0, 0, 1])
         proj_matrix = p.computeProjectionMatrixFOV(60, 1.0, 0.1, 100.0)
-        img = p.getCameraImage(64, 64, view_matrix, proj_matrix)[2]
-        return np.array(img, dtype=np.uint8)[:, :, :3]
+
+        _, _, img, _, _ = p.getCameraImage(
+            width=64,
+            height=64,
+            viewMatrix=view_matrix,
+            projectionMatrix=proj_matrix
+        )
+
+        img = np.array(img, dtype=np.uint8)
+
+        # Handle flattened image buffers
+        if img.ndim == 1:
+            img = img.reshape((64, 64, 4))
+
+        # Remove alpha channel if present
+        if img.shape[-1] == 4:
+            img = img[:, :, :3]
+
+        return img
 
     def _drive_husky(self, robot_id, lin_v, ang_v):
         left, right = lin_v - ang_v, lin_v + ang_v
