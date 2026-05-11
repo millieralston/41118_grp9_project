@@ -3,15 +3,16 @@ from gymnasium import spaces
 import numpy as np
 import pybullet as p
 
-# describes the observation space format (a vector with 8 floating point values)
+# describes the observation space format (a vector with 10 floating point values)
 def create_observation_space():
     # observation space vector layout
-    # [runner_x, runner_y, obstacle1_x, obstacle1_y, obstacle2_x, obstacle2_y, obstacle3_x, obstacle3_y]
+    # [runner_x, runner_y, obstacle1_x, obstacle1_y, obstacle2_x, obstacle2_y, obstacle3_x, obstacle3_y, vel_x, vel_y]
+    # vel_x, vel_y: chaser's actual linear velocity in its own frame — near zero means stuck
 
     return spaces.Box(
         low=-20,
         high=20,
-        shape=(8,),
+        shape=(10,),
         dtype=np.float32
     )
 
@@ -66,6 +67,12 @@ def get_observation(env):
 
     while len(observation) < 8:
         observation.extend([0.0, 0.0])
+
+    # Chaser's actual velocity in its own local frame — agent can detect being stuck
+    linear_vel, _ = p.getBaseVelocity(env.chaser)
+    inv_pos, inv_orn = p.invertTransform([0, 0, 0], chaser_orn)
+    local_vel, _ = p.multiplyTransforms(inv_pos, inv_orn, linear_vel, [0, 0, 0, 1])
+    observation.extend([local_vel[0], local_vel[1]])
 
     return np.array(observation, dtype=np.float32)
 

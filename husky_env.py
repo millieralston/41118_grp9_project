@@ -20,6 +20,7 @@ class HuskyChaserEnv(gym.Env):
         # Configuration
         self.boundary = 10  # Fence distance from center
         self.obstacle_positions = []
+        self.obstacle_ids = []  # pybullet body IDs for collision detection
 
         p.connect(p.GUI)
         p.setAdditionalSearchPath(pybullet_data.getDataPath())
@@ -73,7 +74,8 @@ class HuskyChaserEnv(gym.Env):
         super().reset(seed=seed)
         p.resetSimulation()
         p.setGravity(0, 0, -9.81)
-        self.obstacle_positions = [] # Clear tracking list
+        self.obstacle_positions = []  # Clear tracking list
+        self.obstacle_ids = []
         
         p.loadURDF("plane.urdf")
         self._build_fence()
@@ -170,9 +172,20 @@ class HuskyChaserEnv(gym.Env):
                                     targetVelocity=(left if idx % 2 == 0 else right))
 
     def _calculate_reward(self):
+        # Success: chaser touches runner
         contacts = p.getContactPoints(self.chaser, self.runner)
-        if contacts: return 100.0, True
-        return -0.1, False
+        if contacts:
+            return 100.0, True
+
+        reward = -0.1  # alive penalty
+
+        # Stuck penalty: low actual speed means the robot hit something and can't move
+        linear_vel, _ = p.getBaseVelocity(self.chaser)
+        actual_speed = np.linalg.norm(linear_vel[:2])
+        if actual_speed < 0.05:
+            reward -= 5.0  # CHANGED: penalise being stuck (collision with obstacle or wall)
+
+        return reward, False
 
 if __name__ == "__main__":
     env = HuskyChaserEnv()
