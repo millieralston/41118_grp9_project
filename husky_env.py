@@ -20,6 +20,8 @@ class HuskyChaserEnv(gym.Env):
         # Configuration
         self.boundary = 10  # Fence distance from center
         self.obstacle_positions = []
+        self.max_steps = 1000  # Episode timeout
+        self.current_step = 0
 
         if render_mode.lower() == "gui":
             self.physics_client = p.connect(p.GUI)
@@ -96,6 +98,7 @@ class HuskyChaserEnv(gym.Env):
         self.runner = p.loadURDF("husky/husky.urdf", basePosition=runner_pos)
         p.changeVisualShape(self.runner, -1, rgbaColor=[0, 0, 1, 1])
         
+        self.current_step = 0
         return self._get_obs(), {}
 
     def _runner_ang_v(self):
@@ -110,15 +113,17 @@ class HuskyChaserEnv(gym.Env):
         return 0.3
 
     def step(self, action):
+        self.current_step += 1
         self._drive_husky(self.chaser, action[0] * 4.0, action[1] * 2.0)
         self._drive_husky(self.runner, 3.0, self._runner_ang_v())
         p.stepSimulation()
-        
+
         self.get_camera_image() # Display/update camera feed
 
         obs = self._get_obs()
         reward, terminated = self._calculate_reward()
-        return obs, reward, terminated, False, {}
+        truncated = self.current_step >= self.max_steps
+        return obs, reward, terminated, truncated, {}
 
     # def _get_obs(self):
     #     pos, orn = p.getBasePositionAndOrientation(self.chaser)
