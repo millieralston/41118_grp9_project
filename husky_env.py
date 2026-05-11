@@ -184,9 +184,27 @@ class HuskyChaserEnv(gym.Env):
                                     targetVelocity=(left if idx % 2 == 0 else right))
 
     def _calculate_reward(self):
+        chaser_pos, _ = p.getBasePositionAndOrientation(self.chaser)
+        runner_pos, _ = p.getBasePositionAndOrientation(self.runner)
+
+        distance = np.linalg.norm(np.array(chaser_pos[:2]) - np.array(runner_pos[:2]))
+
+        reward = -0.05                   # alive penalty — encourages speed
+        reward += -distance * 0.8        # dense distance signal — closer is better
+
         contacts = p.getContactPoints(self.chaser, self.runner)
-        if contacts: return 100.0, True
-        return -0.1, False
+        if contacts:
+            return 200.0, True
+
+        for obs_pos in self.obstacle_positions:
+            obs_dist = np.linalg.norm(np.array(chaser_pos[:2]) - np.array(obs_pos))
+            if obs_dist < 1.5:
+                reward -= (1.5 - obs_dist) * 3.0  # obstacle proximity penalty
+
+        if abs(chaser_pos[0]) > self.boundary - 1.0 or abs(chaser_pos[1]) > self.boundary - 1.0:
+            reward -= 5.0  # wall penalty
+
+        return reward, False
 
 if __name__ == "__main__":
     env = HuskyChaserEnv()
