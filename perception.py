@@ -18,49 +18,53 @@ def create_observation_space():
 # returns the observation space vector for the current state of the environment (positions of runner and obstacles relative to the chaser)
 def get_observation(env):
     observation = []
+    debug = getattr(env, "debug_perception", False)
 
     chaser_pos, chaser_orn = p.getBasePositionAndOrientation(env.chaser)
 
     runner_pos, _ = p.getBasePositionAndOrientation(env.runner)
 
-    p.addUserDebugText(
-        "RUNNER",
-        runner_pos,
-        textColorRGB=[1, 0, 0],
-        lifeTime=0.1
-    )
+    if debug:
+        p.addUserDebugText(
+            "RUNNER",
+            runner_pos,
+            textColorRGB=[1, 0, 0],
+            lifeTime=0.1
+        )
 
-    p.addUserDebugLine(
-        chaser_pos,
-        runner_pos,
-        [1, 0, 0],   # red
-        lineWidth=3,
-        lifeTime=0.1
-    )
+        p.addUserDebugLine(
+            chaser_pos,
+            runner_pos,
+            [1, 0, 0],   # red
+            lineWidth=3,
+            lifeTime=0.1
+        )
 
     runner_x, runner_y = get_relative_position(chaser_pos, chaser_orn, runner_pos)
 
-    print(f"Runner pos: ({runner_x:.2f}, {runner_y:.2f}) | ")
+    if debug:
+        print(f"Runner pos: ({runner_x:.2f}, {runner_y:.2f}) | ")
 
     observation.extend([runner_x, runner_y])
 
     closest_obstacles = get_closest_obstacles(env)
 
     for _, obs_x, obs_y, obs_world_pos in closest_obstacles:
-        print(f"Obs pos: ({obs_x:.2f}, {obs_y:.2f})")
-        p.addUserDebugLine(
-            chaser_pos,
-            obs_world_pos,
-            [0, 1, 0],   # green
-            lineWidth=2,
-            lifeTime=0.1
-        )
-        p.addUserDebugText(
-            "OBS",
-            obs_world_pos,
-            textColorRGB=[0, 1, 0],
-            lifeTime=0.1
-        )
+        if debug:
+            print(f"Obs pos: ({obs_x:.2f}, {obs_y:.2f})")
+            p.addUserDebugLine(
+                chaser_pos,
+                obs_world_pos,
+                [0, 1, 0],   # green
+                lineWidth=2,
+                lifeTime=0.1
+            )
+            p.addUserDebugText(
+                "OBS",
+                obs_world_pos,
+                textColorRGB=[0, 1, 0],
+                lifeTime=0.1
+            )
 
         observation.extend([obs_x, obs_y])
 

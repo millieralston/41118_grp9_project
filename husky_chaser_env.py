@@ -5,18 +5,32 @@ import pybullet_data
 import numpy as np
 import time
 import random
+from perception import create_observation_space, get_observation
 
 class HuskyChaserEnv(gym.Env):
-    def __init__(self, render_mode="gui"):
+    def __init__(self, render_mode="direct"): # "gui" for visualization, "direct" for fast training
         super().__init__()
         self.action_space = spaces.Box(low=-1, high=1, shape=(2,), dtype=np.float32)
-        self.observation_space = spaces.Box(low=0, high=255, shape=(64, 64, 3), dtype=np.uint8)
+
+        # Old CNN/image observation space kept for reference.
+        # self.observation_space = spaces.Box(low=0, high=255, shape=(64, 64, 3), dtype=np.uint8)
+
+        # MLP/PPO uses a small vector from perception.py instead of camera pixels.
+        self.observation_space = create_observation_space()
         
         self.boundary = 10
         self.obstacle_positions = []
+
+        self.render_mode = render_mode.lower()
+        self.debug_perception = self.render_mode == "gui"
+        # self.max_steps = 1000
+        # self.step_count = 0
+        # self.prev_distance = None
+        # self.runner_ang = 0.0
+        # self.runner_turn_timer = 0
         
         # Handle GUI vs DIRECT mode
-        if render_mode.lower() == "gui":
+        if self.render_mode == "gui":
             self.physics_client = p.connect(p.GUI)
         else:
             self.physics_client = p.connect(p.DIRECT)   # For training (fast)
@@ -24,6 +38,8 @@ class HuskyChaserEnv(gym.Env):
         p.setAdditionalSearchPath(pybullet_data.getDataPath())
         p.configureDebugVisualizer(p.COV_ENABLE_SHADOWS, 0)
 
+    # the reset function initializes the environment, placing the chaser and runner in valid positions and setting up the obstacles. 
+    # It returns the initial observation and an empty info dictionary.
     def reset(self, seed=None, options=None):
         super().reset(seed=seed)
         p.resetSimulation()
@@ -46,10 +62,18 @@ class HuskyChaserEnv(gym.Env):
         self.runner = p.loadURDF("husky/husky.urdf", basePosition=runner_pos)
         p.changeVisualShape(self.runner, -1, rgbaColor=[0, 0, 1, 1])
         
-        time.sleep(0.1)  # Small delay helps camera stability
+        if self.render_mode == "gui":
+            time.sleep(0.1)  # Small delay helps camera stability
         return self._get_obs(), {}
 
+    # Obtain the obstacle and runner positons relative to the chaser, and return them as an observation vector.
     def _get_obs(self):
+        # Old CNN/image observation kept for reference.
+        # return self.get_camera_image()
+
+        return get_observation(self)
+
+    def get_camera_image(self):
         pos, orn = p.getBasePositionAndOrientation(self.chaser)
         rot_matrix = p.getMatrixFromQuaternion(orn)
         forward = [rot_matrix[0], rot_matrix[3], rot_matrix[6]]
@@ -71,6 +95,7 @@ class HuskyChaserEnv(gym.Env):
         
         return rgb[:, :, :3]
 
+    # step function applies the action to the chaser, moves the runner, steps the simulation, and calculates the reward and termination status.
     def step(self, action):
         self._drive_husky(self.chaser, action[0] * 4.0, action[1] * 2.0)
         self._drive_husky(self.runner, 3.0, 0.3)
