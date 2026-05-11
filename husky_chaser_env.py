@@ -162,7 +162,13 @@ class HuskyChaserEnv(gym.Env):
         # Wall penalty
         if abs(chaser_pos[0]) > self.boundary - 1.0 or abs(chaser_pos[1]) > self.boundary - 1.0:
             reward -= 5.0
-        
+
+        # Stuck penalty: low actual speed signals collision with obstacle or wall
+        # Mirrors what the agent perceives via camera — commanded motion but no movement
+        linear_vel, _ = p.getBaseVelocity(self.chaser)
+        if np.linalg.norm(linear_vel[:2]) < 0.05:
+            reward -= 5.0
+
         terminated = False
         return reward, terminated
 

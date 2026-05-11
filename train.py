@@ -3,7 +3,8 @@ from stable_baselines3 import PPO
 from stable_baselines3.common.env_util import make_vec_env
 from stable_baselines3.common.vec_env import VecTransposeImage, VecMonitor
 from stable_baselines3.common.callbacks import EvalCallback, CheckpointCallback
-import husky_env_neo   # Change to your filename (without .py)
+# import husky_env_neo   # Change to your filename (without .py)
+import husky_chaser_env as husky_env_neo   # CNN image-based env
 
 # Register environment
 def make_env():
