@@ -11,17 +11,20 @@ from perception import create_observation_space
 from perception import get_observation
 
 class HuskyChaserEnv(gym.Env):
-    def __init__(self):
+    def __init__(self, render_mode="direct"):
         super(HuskyChaserEnv, self).__init__()
         self.action_space = spaces.Box(low=-1, high=1, shape=(2,), dtype=np.float32)
         # self.observation_space = spaces.Box(low=0, high=255, shape=(64, 64, 3), dtype=np.uint8)
         self.observation_space = create_observation_space()
-        
+
         # Configuration
         self.boundary = 10  # Fence distance from center
         self.obstacle_positions = []
 
-        p.connect(p.GUI)
+        if render_mode.lower() == "gui":
+            self.physics_client = p.connect(p.GUI)
+        else:
+            self.physics_client = p.connect(p.DIRECT)
         p.setAdditionalSearchPath(pybullet_data.getDataPath())
 
     def _build_fence(self):

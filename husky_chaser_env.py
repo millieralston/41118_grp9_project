@@ -46,7 +46,7 @@ class HuskyChaserEnv(gym.Env):
         self.runner = p.loadURDF("husky/husky.urdf", basePosition=runner_pos)
         p.changeVisualShape(self.runner, -1, rgbaColor=[0, 0, 1, 1])
         
-        time.sleep(0.1)  # Small delay helps camera stability
+        # time.sleep(0.1)  # REMOVED: unnecessary delay, slows training
         return self._get_obs(), {}
 
     def _get_obs(self):
@@ -60,8 +60,8 @@ class HuskyChaserEnv(gym.Env):
         view_matrix = p.computeViewMatrix(cam_pos, target, [0, 0, 1])
         proj_matrix = p.computeProjectionMatrixFOV(60, 1.0, 0.1, 100.0)
         
-        img_data = p.getCameraImage(64, 64, view_matrix, proj_matrix, 
-                                    renderer=p.ER_BULLET_HARDWARE_OPENGL)
+        img_data = p.getCameraImage(64, 64, view_matrix, proj_matrix)
+                                    # renderer=p.ER_BULLET_HARDWARE_OPENGL  # REMOVED: slow in DIRECT mode
         
         rgb = img_data[2]
         if isinstance(rgb, tuple):

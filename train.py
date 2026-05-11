@@ -1,9 +1,11 @@
 import gymnasium as gym
 from stable_baselines3 import PPO
 from stable_baselines3.common.env_util import make_vec_env
-from stable_baselines3.common.vec_env import VecTransposeImage, VecMonitor
+from stable_baselines3.common.vec_env import VecMonitor  # VecTransposeImage not needed for MlpPolicy
 from stable_baselines3.common.callbacks import EvalCallback, CheckpointCallback
-import husky_env_neo   # Change to your filename (without .py)
+# import husky_env_neo   # Change to your filename (without .py)
+# import husky_chaser_env as husky_env_neo   # CNN image-based env (slow)
+import husky_env as husky_env_neo   # MLP vector-based env (fast)
 
 # Register environment
 def make_env():
@@ -13,11 +15,11 @@ def make_env():
 
 # Vectorized environments (parallel training)
 vec_env = make_vec_env(make_env, n_envs=4)
-vec_env = VecTransposeImage(vec_env)      # Important for CNN
+# VecTransposeImage removed: not needed for MlpPolicy (vector observations)
 vec_env = VecMonitor(vec_env)
 
 model = PPO(
-    "CnnPolicy", 
+    "MlpPolicy",   # MlpPolicy for vector obs — much faster than CnnPolicy on CPU
     vec_env,
     verbose=1,
     tensorboard_log="./husky_ppo_logs/",
