@@ -24,6 +24,13 @@ class HuskyChaserEnv(gym.Env):
         p.connect(p.GUI)
         p.setAdditionalSearchPath(pybullet_data.getDataPath())
 
+        # Initialising IDs for observation space debug visuals
+        self.runner_line_id = -1
+        self.runner_text_id = -1
+
+        self.obstacle_line_ids = []
+        self.obstacle_text_ids = []
+
     def _build_fence(self):
         """Creates a perimeter of boxes around the play area."""
         fence_height = 1.0
