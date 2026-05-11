@@ -98,9 +98,20 @@ class HuskyChaserEnv(gym.Env):
         
         return self._get_obs(), {}
 
+    def _runner_ang_v(self):
+        """Turn toward center when near the boundary fence, otherwise slight arc."""
+        runner_pos, runner_orn = p.getBasePositionAndOrientation(self.runner)
+        if abs(runner_pos[0]) > self.boundary - 2.0 or abs(runner_pos[1]) > self.boundary - 2.0:
+            yaw = p.getEulerFromQuaternion(runner_orn)[2]
+            to_center = np.array([-runner_pos[0], -runner_pos[1]])
+            forward = np.array([np.cos(yaw), np.sin(yaw)])
+            cross = forward[0] * to_center[1] - forward[1] * to_center[0]
+            return 1.5 * (np.sign(cross) if abs(cross) > 0.01 else 1.0)
+        return 0.3
+
     def step(self, action):
         self._drive_husky(self.chaser, action[0] * 4.0, action[1] * 2.0)
-        self._drive_husky(self.runner, 3.0, 0.3) # Automated runner
+        self._drive_husky(self.runner, 3.0, self._runner_ang_v())
         p.stepSimulation()
         
         self.get_camera_image() # Display/update camera feed
