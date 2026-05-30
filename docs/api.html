@@ -1,0 +1,34 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>API — 41118 Group 9</title>
+  <link rel="stylesheet" href="../static/css/bulma.min.css">
+</head>
+<body>
+<nav class="navbar"><div class="navbar-brand"><a class="navbar-item" href="index.html">Docs</a></div></nav>
+<section class="section">
+  <div class="container">
+    <h1 class="title">API Reference (placeholder)</h1>
+    <p>This page is a placeholder for generated API documentation. To generate API docs automatically you can use <strong>Sphinx</strong> or <strong>pdoc</strong>. Example commands:</p>
+    <pre><code># pdoc (quick):
+pip install pdoc3
+pdoc --html 41118_grp9_project -o docs/_api
+
+# Sphinx (more control):
+pip install sphinx sphinx-autodoc-typehints
+sphinx-quickstart docs/sphinx
+sphinx-apidoc -o docs/sphinx/source 41118_grp9_project
+make -C docs/sphinx html
+</code></pre>
+    <p>Suggested targets to document:</p>
+    <ul>
+      <li><code>husky_env.py</code> — environment classes</li>
+      <li><code>perception.py</code> — sensor utilities</li>
+      <li><code>train.py</code> — training scripts (document entry flags)</li>
+    </ul>
+  </div>
+</section>
+</body>
+</html>
