@@ -18,8 +18,10 @@ class HuskyChaserEnv(gym.Env):
         # Handle GUI vs DIRECT mode
         if render_mode.lower() == "gui":
             self.physics_client = p.connect(p.GUI)
+            self.renderer = p.ER_BULLET_HARDWARE_OPENGL
         else:
             self.physics_client = p.connect(p.DIRECT)   # For training (fast)
+            self.renderer = p.ER_TINY_RENDERER
         
         p.setAdditionalSearchPath(pybullet_data.getDataPath())
         p.configureDebugVisualizer(p.COV_ENABLE_SHADOWS, 0)
@@ -61,7 +63,7 @@ class HuskyChaserEnv(gym.Env):
         proj_matrix = p.computeProjectionMatrixFOV(60, 1.0, 0.1, 100.0)
         
         img_data = p.getCameraImage(64, 64, view_matrix, proj_matrix, 
-                                    renderer=p.ER_BULLET_HARDWARE_OPENGL)
+                                    renderer=self.renderer)
         
         rgb = img_data[2]
         if isinstance(rgb, tuple):

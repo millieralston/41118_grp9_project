@@ -1,12 +1,22 @@
 # TipBot AI Project
 
-Hello everyone, we are Group 9. My name is Melroop with my teammates Millie and Eliza. Our AI in robotics project is called the TipBot.
+Hello everyone, we are Group 9. Our team member names are Melroop, Millie and Eliza. Our AI in robotics project is called the TipBot.
 
 ## Project summary
 
 Our system is designed to simulate a reinforcement learning system, where two Husky bots are loaded within a PyBullet simulated environment to chase another Husky bot while simultaneously avoiding obstacles.
 
 The TipBot system trains a robotic UGV (unmanned ground vehicle) to follow and intercept ground targets. Through this project, we hope to better demonstrate our understanding of the topics learned throughout this course.
+
+## Project structure
+
+- **41118_grp9_project/**: Group project involving Husky robot environment and perception
+  - `husky_env.py`: Main environment file for Husky robot simulation
+  - `husky_chaser_env.py`: Environment variant for chasing behavior
+  - `perception.py`: Perception module for robot vision
+  - `train.py`: Training script
+  - `husky.urdf`: Robot model definition
+  - `checkpoints/`: Saved model checkpoints
 
 ## Current progress
 
@@ -89,6 +99,10 @@ So instead of hand-coding rules like "if an obstacle is nearby, turn left," we g
 - TensorBoard logs: ./husky_ppo_logs/
 - Best model eval: every 5000 steps
 - Checkpoints: every 10000 steps
+
+## Running the GUI
+
+python gui.py
 
 ## Running the HTML Documentation Site
 

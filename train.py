@@ -2,9 +2,25 @@ import gymnasium as gym
 from stable_baselines3 import PPO
 from stable_baselines3.common.env_util import make_vec_env
 from stable_baselines3.common.vec_env import VecTransposeImage, VecMonitor
-from stable_baselines3.common.callbacks import EvalCallback, CheckpointCallback
+from stable_baselines3.common.callbacks import BaseCallback, EvalCallback, CheckpointCallback
 # import husky_env_neo   # Change to your filename (without .py)
 import husky_chaser_env as husky_env_neo   # CNN image-based env
+
+class ProgressCallback(BaseCallback):
+    def __init__(self, print_freq=1000, verbose=0):
+        super().__init__(verbose)
+        self.print_freq = print_freq
+
+    def _on_step(self) -> bool:
+        if self.num_timesteps % self.print_freq == 0 and self.num_timesteps > 0:
+            print(f"[Training Progress] timesteps={self.num_timesteps}", flush=True)
+        return True
+
+    def _on_rollout_start(self) -> None:
+        print(f"[Rollout Start] timesteps={self.num_timesteps}", flush=True)
+
+    def _on_rollout_end(self) -> None:
+        print(f"[Rollout Completed] timesteps={self.num_timesteps}", flush=True)
 
 # Register environment
 def make_env():
@@ -40,9 +56,10 @@ eval_callback = EvalCallback(vec_env, best_model_save_path="./best_model/",
                              n_eval_episodes=5, deterministic=True)
 
 checkpoint_callback = CheckpointCallback(save_freq=10000, save_path="./checkpoints/")
+progress_callback = ProgressCallback(print_freq=1000)
 
-print("Starting PPO Training...")
-model.learn(total_timesteps=200_000, callback=[eval_callback, checkpoint_callback])
+print("Starting PPO Training...", flush=True)
+model.learn(total_timesteps=200_000, callback=[progress_callback, eval_callback, checkpoint_callback])
 
 model.save("husky_chaser_ppo_final")
-print("Training finished!")
+print("Training finished!", flush=True)
