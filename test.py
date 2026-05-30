@@ -20,6 +20,11 @@ def main():
         default=5,
         help="Number of test episodes to watch.",
     )
+    parser.add_argument(
+        "--print-actions",
+        action="store_true",
+        help="Print the model action every 30 steps while testing.",
+    )
     args = parser.parse_args()
 
     model_path = Path(args.model)
@@ -36,12 +41,16 @@ def main():
             obs, _ = env.reset()
             total_reward = 0.0
             done = False
+            step_count = 0
 
             while not done:
                 action, _ = model.predict(obs, deterministic=True)
+                if args.print_actions and step_count % 30 == 0:
+                    print(f"step={step_count} action={action}")
                 obs, reward, terminated, truncated, _ = env.step(action)
                 total_reward += reward
                 done = terminated or truncated
+                step_count += 1
                 time.sleep(1.0 / 240.0)
 
             print(f"Episode {episode} finished with reward {total_reward:.2f}")

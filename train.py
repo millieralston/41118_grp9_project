@@ -1,3 +1,6 @@
+import argparse
+from pathlib import Path
+
 from stable_baselines3 import PPO
 from stable_baselines3.common.callbacks import CheckpointCallback
 from stable_baselines3.common.env_util import make_vec_env
@@ -15,11 +18,13 @@ from husky_chaser_env import HuskyChaserEnv
 # Longer training kept for reference.
 # TOTAL_TIMESTEPS = 200_000
 
-# Laptop-friendly first run. Increase this later once the pipeline is behaving.
-TOTAL_TIMESTEPS = 20_000
+# PPO needs more than a smoke-test run to learn stable pursuit. Lower this if
+# you only want to verify that the pipeline starts.
+TOTAL_TIMESTEPS = 120_000
 TENSORBOARD_LOG_DIR = "./husky_ppo_logs/"
 CHECKPOINT_DIR = "./checkpoints/"
 FINAL_MODEL_PATH = "husky_chaser_ppo_final"
+MODEL_DIR = Path("models")
 
 
 def make_env():
@@ -31,6 +36,27 @@ def make_env():
 
 
 def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--timesteps",
+        type=int,
+        default=TOTAL_TIMESTEPS,
+        help="Number of PPO training timesteps for this run.",
+    )
+    parser.add_argument(
+        "--resume",
+        "--resume-from",
+        dest="resume_from",
+        default=None,
+        help="Optional PPO model zip to continue training from.",
+    )
+    parser.add_argument(
+        "--fresh-start",
+        action="store_true",
+        help="Ignore any saved model and train from scratch.",
+    )
+    args = parser.parse_args()
+
     # Keep this at 1 for now because this environment uses PyBullet's global API.
     # Multiple parallel environments can interfere with each other unless every PyBullet call
     # is carefully tied to a separate physicsClientId.
@@ -41,30 +67,45 @@ def main():
 
     vec_env = VecMonitor(vec_env)
 
-    model = PPO(
-        # Old CNN/image policy kept for reference.
-        # "CnnPolicy",
+    auto_resume_path = Path(FINAL_MODEL_PATH).with_suffix(".zip")
+    resume_from = args.resume_from
+    if resume_from is None and not args.fresh_start and auto_resume_path.exists():
+        resume_from = str(auto_resume_path)
 
-        "MlpPolicy",
-        vec_env,
-        verbose=1,
-        tensorboard_log=TENSORBOARD_LOG_DIR,
-        learning_rate=3e-4,
-        # Original PPO rollout size kept for reference.
-        # n_steps=2048,
-        # batch_size=128,
+    if resume_from:
+        resume_path = Path(resume_from)
+        if not resume_path.exists():
+            raise FileNotFoundError(f"Could not find model to resume from: {resume_path}")
 
-        # Smaller rollouts give quicker feedback on a CPU laptop.
-        n_steps=512,
-        batch_size=64,
-        gamma=0.99,
-        gae_lambda=0.95,
-        clip_range=0.2,
-        ent_coef=0.01,
-        vf_coef=0.5,
-        max_grad_norm=0.5,
-        device="auto",
-    )
+        # This is continued training/fine-tuning. It reuses the learned PPO
+        # policy, then keeps improving it in the current environment.
+        print(f"Loading existing PPO model from {resume_path}...")
+        model = PPO.load(resume_path, env=vec_env, tensorboard_log=TENSORBOARD_LOG_DIR)
+    else:
+        model = PPO(
+            # Old CNN/image policy kept for reference.
+            # "CnnPolicy",
+
+            "MlpPolicy",
+            vec_env,
+            verbose=1,
+            tensorboard_log=TENSORBOARD_LOG_DIR,
+            learning_rate=3e-4,
+            # Original PPO rollout size kept for reference.
+            # n_steps=2048,
+            # batch_size=128,
+
+            # Smaller rollouts give quicker feedback on a CPU laptop.
+            n_steps=512,
+            batch_size=64,
+            gamma=0.99,
+            gae_lambda=0.95,
+            clip_range=0.2,
+            ent_coef=0.02, #increasing, increases exploration, but can lead to more unstable training. Adjust as needed.
+            vf_coef=0.5,
+            max_grad_norm=0.5,
+            device="auto",
+        )
 
     checkpoint_callback = CheckpointCallback(
         save_freq=10_000,
@@ -82,10 +123,10 @@ def main():
     #     deterministic=True,
     # )
 
-    print("Starting PPO training...")
+    print(f"Starting PPO training for {args.timesteps} timesteps...")
     try:
         model.learn(
-            total_timesteps=TOTAL_TIMESTEPS,
+            total_timesteps=args.timesteps,
             callback=checkpoint_callback,
             tb_log_name="ppo_husky_chaser_mlp",
         )
