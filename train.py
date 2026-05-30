@@ -12,7 +12,7 @@ from husky_chaser_env import HuskyChaserEnv
 # import gymnasium as gym
 # from stable_baselines3.common.vec_env import VecTransposeImage
 # from stable_baselines3.common.callbacks import EvalCallback
-# import husky_env_neo   # Old filename from earlier version; not in this repository.
+# import husky_env_neo   # Old filename from lier version; not in this repository.
 
 
 # Longer training kept for reference.

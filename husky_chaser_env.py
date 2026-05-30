@@ -56,13 +56,15 @@ class HuskyChaserEnv(gym.Env):
 
         self.render_mode = render_mode.lower()
         self.debug_perception = self.render_mode == "gui"
-        self.max_steps = 500
+        # Longer episodes give the chaser time to route around obstacles,
+        # reacquire the runner, and finish the catch.
+        self.max_steps = 800
         self.step_count = 0
 
         # Movement tuning values. These are wheel target velocities, not m/s.
         # The top speeds are high enough for visible pursuit, while acceleration
         # and turn scaling are kept conservative to prevent wheelies.
-        self.chaser_min_forward_speed = 0.0
+        self.chaser_min_forward_speed = 1.5
         self.chaser_max_forward_speed = 22.5
         self.chaser_angular_scale = 5.5
         self.runner_min_forward_speed = 3.5
@@ -82,12 +84,14 @@ class HuskyChaserEnv(gym.Env):
         self.prev_chaser_xy = None
         self.stuck_steps = 0
         self.obstacle_contact_steps = 0
-        self.catch_distance = 1.5
-        self.near_distance = 3.0
+        self.catch_distance = 1.8
+        self.near_distance = 4.5
         self.last_action = np.zeros(2, dtype=np.float32)
         self.last_raw_action = np.zeros(2, dtype=np.float32)
         self.last_avoidance_turn = 0.0
         self.last_front_obstacle_distance = None
+        self.escape_steps = 0
+        self.escape_turn_direction = 1.0
         # self.runner_ang = 0.0
         # self.runner_turn_timer = 0
         
@@ -124,6 +128,8 @@ class HuskyChaserEnv(gym.Env):
         self.last_raw_action = np.zeros(2, dtype=np.float32)
         self.last_avoidance_turn = 0.0
         self.last_front_obstacle_distance = None
+        self.escape_steps = 0
+        self.escape_turn_direction = 1.0
         self.current_wheel_targets = {}
         
         plane_id = p.loadURDF("plane.urdf")
@@ -205,6 +211,11 @@ class HuskyChaserEnv(gym.Env):
             self.chaser_min_forward_speed
             + forward_signal * (self.chaser_max_forward_speed - self.chaser_min_forward_speed)
         )
+        if float(action[0]) <= -0.95:
+            if self.escape_steps > 0 or self.obstacle_contact_steps > 0 or self.stuck_steps > 8:
+                chaser_linear_speed = -3.0
+            else:
+                chaser_linear_speed = 0.0
         chaser_angular_speed = float(action[1]) * self.chaser_angular_scale
         # Slow down slightly during sharp turns. This keeps high-speed pursuit
         # usable without generating enough torque to lift the front wheels.
@@ -424,6 +435,13 @@ class HuskyChaserEnv(gym.Env):
         self.last_avoidance_turn = 0.0
         self.last_front_obstacle_distance = None
 
+        if self.escape_steps > 0:
+            self.escape_steps -= 1
+            action[0] = -1.0
+            action[1] = self.escape_turn_direction
+            self.last_avoidance_turn = self.escape_turn_direction
+            return action
+
         if front_obstacle is None:
             return action
 
@@ -438,6 +456,14 @@ class HuskyChaserEnv(gym.Env):
             # Positive relative y means obstacle is left of the chaser, so turn right.
             desired_turn = -float(np.sign(obs_y))
 
+        if self.obstacle_contact_steps > 2 or self.stuck_steps > 12:
+            self.escape_steps = 18
+            self.escape_turn_direction = desired_turn
+            action[0] = -1.0
+            action[1] = desired_turn
+            self.last_avoidance_turn = desired_turn
+            return action
+
         lookahead = 3.2
         corridor_half_width = 1.4
         forward_pressure = float(np.clip((lookahead - obs_x) / lookahead, 0.0, 1.0))
@@ -445,12 +471,16 @@ class HuskyChaserEnv(gym.Env):
         strength = forward_pressure * center_pressure
 
         turn_boost = desired_turn * (0.35 + 0.65 * strength)
-        action[1] = float(np.clip(action[1] + turn_boost, -1.0, 1.0))
-
-        # Slow down more aggressively when the obstacle is close and centered.
-        max_forward_action = 0.2 - 1.2 * strength
         if obs_dist < 1.2:
-            max_forward_action = -1.0
+            action[1] = desired_turn
+        else:
+            action[1] = float(np.clip(action[1] + turn_boost, -1.0, 1.0))
+
+        # Slow into a turn instead of stopping. Stopping in front of an obstacle
+        # often leaves the chaser waiting instead of driving around it.
+        max_forward_action = 0.15 - 1.05 * strength
+        if obs_dist < 1.2:
+            max_forward_action = -0.9
         action[0] = float(min(action[0], max_forward_action))
         self.last_avoidance_turn = turn_boost
         return action
@@ -592,42 +622,56 @@ class HuskyChaserEnv(gym.Env):
         # reward += -distance * 0.8
 
         runner_forward_alignment = 0.0
+        runner_lateral_error = 0.0
         if distance > 1e-6:
-            runner_rel_x, _ = get_relative_position(chaser_pos, chaser_orn, runner_pos)
+            runner_rel_x, runner_rel_y = get_relative_position(chaser_pos, chaser_orn, runner_pos)
             runner_forward_alignment = runner_rel_x / distance
+            runner_lateral_error = abs(runner_rel_y) / distance
 
         forward_action = max(float(self.last_action[0]), 0.0)
 
         # Reward progress toward the runner instead of heavily punishing distance every step.
         reward = -0.01
+        reward -= 0.015 * (self.step_count / self.max_steps)
         reward += progress * 50.0
         reward += -max(-progress, 0.0) * 15.0
         reward += -distance * 0.01
-        reward += max(self.near_distance - distance, 0.0) * 1.0
-        reward += max(runner_forward_alignment, 0.0) * 0.2
-        reward += forward_action * max(runner_forward_alignment, 0.0) * 0.05
-        # Teach PPO that catching while flat is better than exploiting unstable tilts.
+        close_range = max(self.near_distance - distance, 0.0)
+        reward += close_range * 1.8
+        reward += max(runner_forward_alignment, 0.0) * 0.35
+        reward += forward_action * max(runner_forward_alignment, 0.0) * 0.12
+
+        if distance < self.near_distance and runner_forward_alignment > 0.0:
+            centered_runner = max(1.0 - runner_lateral_error, 0.0)
+            reward += centered_runner * close_range * 0.6
+            reward += max(progress, 0.0) * 35.0
+            reward -= max(-progress, 0.0) * 8.0
+
+        if distance < self.catch_distance + 1.0:
+            capture_pressure = self.catch_distance + 1.0 - distance
+            reward += capture_pressure * 6.0
+        # Teach PPO that catchsiing while flat is better than exploiting unstable tilts.
         reward -= (abs(chaser_roll) + abs(chaser_pitch)) * 0.6
 
         if self.last_front_obstacle_distance is not None:
             avoid_alignment = float(self.last_raw_action[1] * self.last_avoidance_turn)
-            reward += max(avoid_alignment, 0.0) * 0.8
-            reward -= max(-avoid_alignment, 0.0) * 1.6
-            reward -= max(float(self.last_raw_action[0]), 0.0) * 0.4
+            reward += max(avoid_alignment, 0.0) * 0.35
+            reward -= max(-avoid_alignment, 0.0) * 0.7
+            reward -= max(float(self.last_raw_action[0]), 0.0) * 0.15
         
         # Big bonus for catching
         contacts = p.getContactPoints(self.chaser, self.runner)
         if contacts or distance <= self.catch_distance:
-            return 500.0, True
+            return 800.0, True
 
         hit_obstacle = self._has_contact_with_any(self.chaser, self.obstacle_body_ids)
         hit_wall = self._has_contact_with_any(self.chaser, self.wall_body_ids)
 
         if hit_obstacle:
-            reward -= 30.0
+            reward -= 3.0 + min(self.obstacle_contact_steps, 10) * 0.15
             self.obstacle_contact_steps += 1
         elif hit_wall:
-            reward -= 18.0
+            reward -= 4.0
             self.obstacle_contact_steps += 1
         else:
             self.obstacle_contact_steps = max(0, self.obstacle_contact_steps - 1)
@@ -637,25 +681,25 @@ class HuskyChaserEnv(gym.Env):
         # learn to avoid the behavior instead of sitting there until timeout.
         if forward_action > 0.4 and chaser_movement < 0.01 and distance > self.catch_distance:
             self.stuck_steps += 1
-            reward -= min(self.stuck_steps, 40) * 0.2
+            reward -= min(self.stuck_steps, 50) * 0.05
         else:
             self.stuck_steps = max(0, self.stuck_steps - 2)
 
-        if self.obstacle_contact_steps >= 16:
-            return -80.0, True
+        if self.obstacle_contact_steps >= 45:
+            return -35.0, True
 
-        if self.stuck_steps >= 45:
-            return -80.0, True
+        if self.stuck_steps >= 80:
+            return -35.0, True
         
         # Obstacle avoidance penalty
         for obs_pos in self.obstacle_positions:
             obs_dist = np.linalg.norm(np.array(chaser_pos[:2]) - np.array(obs_pos))
             if obs_dist < 1.5:
-                reward -= (1.5 - obs_dist) * 2.5   # Penalty when too close
+                reward -= (1.5 - obs_dist) * 0.8   # Penalty when too close
 
             obs_rel_x, obs_rel_y = get_relative_position(chaser_pos, chaser_orn, [obs_pos[0], obs_pos[1], 0.0])
             if 0.0 < obs_rel_x < 2.5 and abs(obs_rel_y) < 1.1:
-                reward -= (2.5 - obs_rel_x) * 0.8
+                reward -= (2.5 - obs_rel_x) * 0.18
         
         # Wall penalty
         if abs(chaser_pos[0]) > self.boundary - 1.0 or abs(chaser_pos[1]) > self.boundary - 1.0:
