@@ -94,21 +94,12 @@ class HuskyChaserEnv(gym.Env):
         self.escape_turn_direction = 1.0
         # self.runner_ang = 0.0
         # self.runner_turn_timer = 0
-
-        # Initialising IDs for observation space debug visuals
-        self.runner_line_id = -1
-        self.runner_text_id = -1
-
-        self.obstacle_line_ids = []
-        self.obstacle_text_ids = []
         
         # Handle GUI vs DIRECT mode
         if self.render_mode == "gui":
             self.physics_client = p.connect(p.GUI)
-            self.renderer = p.ER_BULLET_HARDWARE_OPENGL
         else:
             self.physics_client = p.connect(p.DIRECT)   # For training (fast)
-            self.renderer = p.ER_TINY_RENDERER
         
         p.setAdditionalSearchPath(pybullet_data.getDataPath())
         p.configureDebugVisualizer(p.COV_ENABLE_SHADOWS, 0)
@@ -197,7 +188,7 @@ class HuskyChaserEnv(gym.Env):
         proj_matrix = p.computeProjectionMatrixFOV(60, 1.0, 0.1, 100.0)
         
         img_data = p.getCameraImage(64, 64, view_matrix, proj_matrix, 
-                                    renderer=self.renderer)
+                                    renderer=p.ER_BULLET_HARDWARE_OPENGL)
         
         rgb = img_data[2]
         if isinstance(rgb, tuple):
