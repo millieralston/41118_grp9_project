@@ -18,29 +18,32 @@ def create_observation_space():
 # returns the observation space vector for the current state of the environment (positions of runner and obstacles relative to the chaser)
 def get_observation(env):
     observation = []
+    debug = getattr(env, "debug_perception", False)
 
     chaser_pos, chaser_orn = p.getBasePositionAndOrientation(env.chaser)
 
     runner_pos, _ = p.getBasePositionAndOrientation(env.runner)
 
-    env.runner_text_id =p.addUserDebugText(
-        "RUNNER",
-        runner_pos,
-        textColorRGB=[1, 0, 0],
-        replaceItemUniqueId=env.runner_text_id
-    )
+    if debug:
+        env.runner_text_id =p.addUserDebugText(
+            "RUNNER",
+            runner_pos,
+            textColorRGB=[1, 0, 0],
+            replaceItemUniqueId=env.runner_text_id
+        )
 
-    env.runner_line_id =p.addUserDebugLine(
-        chaser_pos,
-        runner_pos,
-        [1, 0, 0],   # red
-        lineWidth=3,
-        replaceItemUniqueId=env.runner_line_id
-    )
+        env.runner_line_id =p.addUserDebugLine(
+            chaser_pos,
+            runner_pos,
+            [1, 0, 0],   # red
+            lineWidth=3,
+            replaceItemUniqueId=env.runner_line_id
+        )
 
     runner_x, runner_y = get_relative_position(chaser_pos, chaser_orn, runner_pos)
 
-    print(f"Runner pos: ({runner_x:.2f}, {runner_y:.2f}) | ")
+    if debug:
+        print(f"Runner pos: ({runner_x:.2f}, {runner_y:.2f}) | ")
 
     observation.extend([runner_x, runner_y])
 
