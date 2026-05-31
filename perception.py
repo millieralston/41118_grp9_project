@@ -25,19 +25,19 @@ def get_observation(env):
     runner_pos, _ = p.getBasePositionAndOrientation(env.runner)
 
     if debug:
-        env.runner_text_id =p.addUserDebugText(
+        p.addUserDebugText(
             "RUNNER",
             runner_pos,
             textColorRGB=[1, 0, 0],
-            replaceItemUniqueId=env.runner_text_id
+            lifeTime=0.1
         )
 
-        env.runner_line_id =p.addUserDebugLine(
+        p.addUserDebugLine(
             chaser_pos,
             runner_pos,
             [1, 0, 0],   # red
             lineWidth=3,
-            replaceItemUniqueId=env.runner_line_id
+            lifeTime=0.1
         )
 
     runner_x, runner_y = get_relative_position(chaser_pos, chaser_orn, runner_pos)

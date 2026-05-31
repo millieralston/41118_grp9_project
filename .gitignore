@@ -11,10 +11,3 @@ __pycache__/
 
 # Environment variables
 .env
-
-# Training outputs
-husky_ppo_logs/
-logs/
-checkpoints/
-best_model/
-*.zip
