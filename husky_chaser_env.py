@@ -53,6 +53,8 @@ class HuskyChaserEnv(gym.Env):
         self.obstacle_positions = []
         self.obstacle_body_ids = []
         self.wall_body_ids = []
+        self.obstacle_line_ids = []
+        self.obstacle_text_ids = []
 
         self.render_mode = render_mode.lower()
         self.debug_perception = self.render_mode == "gui"
@@ -126,6 +128,8 @@ class HuskyChaserEnv(gym.Env):
         self.obstacle_positions = []
         self.obstacle_body_ids = []
         self.wall_body_ids = []
+        self.obstacle_line_ids = []
+        self.obstacle_text_ids = []
         self.step_count = 0
         self.prev_distance = None
         self.prev_chaser_xy = None
