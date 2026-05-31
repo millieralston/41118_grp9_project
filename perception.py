@@ -25,19 +25,19 @@ def get_observation(env):
     runner_pos, _ = p.getBasePositionAndOrientation(env.runner)
 
     if debug:
-        env.runner_text_id =p.addUserDebugText(
+        p.addUserDebugText(
             "RUNNER",
             runner_pos,
             textColorRGB=[1, 0, 0],
-            replaceItemUniqueId=env.runner_text_id
+            lifeTime=0.1
         )
 
-        env.runner_line_id =p.addUserDebugLine(
+        p.addUserDebugLine(
             chaser_pos,
             runner_pos,
             [1, 0, 0],   # red
             lineWidth=3,
-            replaceItemUniqueId=env.runner_line_id
+            lifeTime=0.1
         )
 
     runner_x, runner_y = get_relative_position(chaser_pos, chaser_orn, runner_pos)
@@ -49,27 +49,22 @@ def get_observation(env):
 
     closest_obstacles = get_closest_obstacles(env)
 
-    while len(env.obstacle_line_ids) < len(closest_obstacles):
-        env.obstacle_line_ids.append(-1)
-
-    while len(env.obstacle_text_ids) < len(closest_obstacles):
-        env.obstacle_text_ids.append(-1)
-
-    for i, (_, obs_x, obs_y, obs_world_pos) in enumerate(closest_obstacles):
-        print(f"Obs pos: ({obs_x:.2f}, {obs_y:.2f})")
-        env.obstacle_line_ids[i] = p.addUserDebugLine(
-            chaser_pos,
-            obs_world_pos,
-            [0, 1, 0],   # green
-            lineWidth=2,
-            replaceItemUniqueId=env.obstacle_line_ids[i]
-        )
-        env.obstacle_text_ids[i] = p.addUserDebugText(
-            f"OBS {i+1}",
-            obs_world_pos,
-            textColorRGB=[0, 1, 0],
-            replaceItemUniqueId=env.obstacle_text_ids[i]
-        )
+    for _, obs_x, obs_y, obs_world_pos in closest_obstacles:
+        if debug:
+            print(f"Obs pos: ({obs_x:.2f}, {obs_y:.2f})")
+            p.addUserDebugLine(
+                chaser_pos,
+                obs_world_pos,
+                [0, 1, 0],   # green
+                lineWidth=2,
+                lifeTime=0.1
+            )
+            p.addUserDebugText(
+                "OBS",
+                obs_world_pos,
+                textColorRGB=[0, 1, 0],
+                lifeTime=0.1
+            )
 
         observation.extend([obs_x, obs_y])
 
