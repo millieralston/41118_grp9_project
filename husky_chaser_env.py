@@ -103,7 +103,7 @@ class HuskyChaserEnv(gym.Env):
 
         self.obstacle_line_ids = []
         self.obstacle_text_ids = []
-        
+
         # Handle GUI vs DIRECT mode
         if self.render_mode == "gui":
             self.physics_client = p.connect(p.GUI)
@@ -160,12 +160,37 @@ class HuskyChaserEnv(gym.Env):
             self._create_bench([random.uniform(-7, 7), random.uniform(-7, 7)])
 
         chaser_pos = self._get_valid_spawn()
+
+        yaw = np.random.uniform(-np.pi, np.pi)
+        quat = p.getQuaternionFromEuler([0, 0, yaw])
+
         with suppress_pybullet_load_warnings():
-            self.chaser = p.loadURDF("husky/husky.urdf", basePosition=chaser_pos)
+            self.chaser = p.loadURDF("husky/husky.urdf", basePosition=chaser_pos, baseOrientation=quat)
         p.changeVisualShape(self.chaser, -1, rgbaColor=[1, 0, 0, 1])
         self._configure_husky_dynamics(self.chaser)
         
-        runner_pos = self._get_valid_spawn(reference_positions=[chaser_pos], min_distance=5.0)
+        # runner_pos = self._get_valid_spawn(reference_positions=[chaser_pos], min_distance=5.0)
+        chaser_pos, chaser_orn = p.getBasePositionAndOrientation(self.chaser)
+
+        runner_pos = None
+
+        for _ in range(50):
+            candidate = self._spawn_in_front_of_chaser(chaser_pos, chaser_orn)
+
+            if self._is_valid_spawn(candidate, [chaser_pos], 2.0):
+                runner_pos = candidate
+                break
+
+        if runner_pos is None:
+            for _ in range(20):
+                candidate = chaser_pos + np.array([np.random.uniform(1.5, 3.0), np.random.uniform(-2, 2), 0])
+
+                if self._is_valid_spawn(candidate, [chaser_pos], 2.0):
+                    runner_pos = candidate
+                    break
+            else:
+                runner_pos = chaser_pos  # last-resort safe state
+
         with suppress_pybullet_load_warnings():
             self.runner = p.loadURDF("husky/husky.urdf", basePosition=runner_pos)
         p.changeVisualShape(self.runner, -1, rgbaColor=[0, 0, 1, 1])
@@ -274,6 +299,7 @@ class HuskyChaserEnv(gym.Env):
             body_id = p.createMultiBody(baseMass=0, baseCollisionShapeIndex=col, baseVisualShapeIndex=vis, basePosition=pos)
             p.changeDynamics(body_id, -1, lateralFriction=1.2, restitution=0.0)
             self.wall_body_ids.append(body_id)
+            # self.obstacle_body_ids.extend(self.wall_body_ids)
 
     def _create_tree(self, pos):
         self.obstacle_positions.append(pos)
@@ -721,6 +747,95 @@ class HuskyChaserEnv(gym.Env):
         
         terminated = False
         return reward, terminated
+
+    def _spawn_in_front_of_chaser(self, chaser_pos, chaser_orn, lateral_spread=2.0, height=0.1):
+        """
+        Spawns runner in front of the chaser with some randomness.
+        """
+
+        # Get rotation matrix from quaternion
+        rot_matrix = np.array(p.getMatrixFromQuaternion(chaser_orn))
+
+        # Forward and right vectors (PyBullet uses row-major 3x3 matrix)
+        forward = np.array([rot_matrix[0], rot_matrix[3], rot_matrix[6]])
+        right = np.array([rot_matrix[1], rot_matrix[4], rot_matrix[7]])
+
+        forward = forward.astype(np.float32)
+        right   = right.astype(np.float32)
+
+        forward = forward / (np.linalg.norm(forward) + 1e-6)
+        right   = right / (np.linalg.norm(right) + 1e-6)
+
+        # Random distance in front of chaser
+        r = np.random.rand()
+
+        if r < 0.3:
+            dist = np.random.uniform(4.0, 8.0) # close
+        elif r < 0.7:
+            dist = np.random.uniform(8.0, 12.0) # medium
+        else:
+            dist = np.random.uniform(12.0, 16.0) # far
+
+        # Random sideways offset
+        side = np.random.uniform(-lateral_spread, lateral_spread)
+
+        # Compute spawn position
+        spawn = (np.array(chaser_pos, dtype=np.float32) + forward * dist + right * side)
+
+        z = self._get_ground_height(spawn[0], spawn[1])
+        spawn[2] = z + 0.1  # keep on ground plane
+
+        return spawn.tolist()
+    
+    def _is_valid_spawn(self, pos, reference_positions=None, min_distance=0.0):
+        reference_positions = reference_positions or []
+
+        clear_of_obstacles = all(
+            np.linalg.norm(np.array(pos[:2]) - np.array(obs)) > 1.2
+            for obs in self.obstacle_positions
+        )
+
+        clear_of_references = all(
+            np.linalg.norm(np.array(pos[:2]) - np.array(ref[:2])) >= min_distance
+            for ref in reference_positions
+        )
+
+        inside_bounds = (
+            -self.boundary + 1 < pos[0] < self.boundary - 1 and
+            -self.boundary + 1 < pos[1] < self.boundary - 1
+        )
+
+        not_colliding = not self._collides_with_world(pos)
+
+        return (
+            # clear_of_obstacles and
+            clear_of_references and
+            inside_bounds and
+            not_colliding
+        )
+
+    def _get_ground_height(self, x, y):
+        ray_start = [x, y, 10]
+        ray_end   = [x, y, -10]
+
+        hit = p.rayTest(ray_start, ray_end)[0]
+
+        return hit[3][2]  # z position of hit point
+
+    def _collides_with_world(self, pos, radius=0.5):
+        aabb_min = [pos[0] - radius, pos[1] - radius, pos[2] - 0.2]
+        aabb_max = [pos[0] + radius, pos[1] + radius, pos[2] + 0.5]
+
+        overlaps = p.getOverlappingObjects(aabb_min, aabb_max)
+
+        if overlaps is None:
+            return False
+
+        for obj_id, _ in overlaps:
+            if obj_id in self.obstacle_body_ids:  # fences, walls, trees, benches
+                return True
+
+        return False
 
     def close(self):
         if p.isConnected():

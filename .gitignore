@@ -18,3 +18,6 @@ logs/
 checkpoints/
 best_model/
 *.zip
+
+# CNN datasets
+dataset/
