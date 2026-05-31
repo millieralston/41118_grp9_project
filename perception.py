@@ -42,8 +42,8 @@ def get_observation(env):
 
     runner_x, runner_y = get_relative_position(chaser_pos, chaser_orn, runner_pos)
 
-    if debug:
-        print(f"Runner pos: ({runner_x:.2f}, {runner_y:.2f}) | ")
+    # if debug:
+    #     print(f"Runner pos: ({runner_x:.2f}, {runner_y:.2f}) | ")
 
     observation.extend([runner_x, runner_y])
 
@@ -55,23 +55,24 @@ def get_observation(env):
     while len(env.obstacle_text_ids) < len(closest_obstacles):
         env.obstacle_text_ids.append(-1)
 
-    for i, (_, obs_x, obs_y, obs_world_pos) in enumerate(closest_obstacles):
-        print(f"Obs pos: ({obs_x:.2f}, {obs_y:.2f})")
-        env.obstacle_line_ids[i] = p.addUserDebugLine(
-            chaser_pos,
-            obs_world_pos,
-            [0, 1, 0],   # green
-            lineWidth=2,
-            replaceItemUniqueId=env.obstacle_line_ids[i]
-        )
-        env.obstacle_text_ids[i] = p.addUserDebugText(
-            f"OBS {i+1}",
-            obs_world_pos,
-            textColorRGB=[0, 1, 0],
-            replaceItemUniqueId=env.obstacle_text_ids[i]
-        )
+    if debug:
+        for i, (_, obs_x, obs_y, obs_world_pos) in enumerate(closest_obstacles):
+            # print(f"Obs pos: ({obs_x:.2f}, {obs_y:.2f})")
+            env.obstacle_line_ids[i] = p.addUserDebugLine(
+                chaser_pos,
+                obs_world_pos,
+                [0, 1, 0],   # green
+                lineWidth=2,
+                replaceItemUniqueId=env.obstacle_line_ids[i]
+            )
+            env.obstacle_text_ids[i] = p.addUserDebugText(
+                f"OBS {i+1}",
+                obs_world_pos,
+                textColorRGB=[0, 1, 0],
+                replaceItemUniqueId=env.obstacle_text_ids[i]
+            )
 
-        observation.extend([obs_x, obs_y])
+            observation.extend([obs_x, obs_y])
 
     while len(observation) < 8:
         observation.extend([0.0, 0.0])
