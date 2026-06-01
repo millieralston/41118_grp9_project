@@ -11,10 +11,19 @@ env = HuskyChaserEnv(render_mode="gui")
 IMG_DIR = "dataset/images"
 LBL_DIR = "dataset/labels"
 SEG_DIR = "dataset/seg_images"
+REJECT_DIR = "dataset/rejected"
+
+EDGE_IMG_DIR = "dataset/edge_case/images"
+EDGE_LBL_DIR = "dataset/edge_case/labels"
 
 os.makedirs(IMG_DIR, exist_ok=True)
 os.makedirs(LBL_DIR, exist_ok=True)
+
 os.makedirs(SEG_DIR, exist_ok=True)
+os.makedirs(REJECT_DIR, exist_ok=True)
+
+os.makedirs(EDGE_IMG_DIR, exist_ok=True)
+os.makedirs(EDGE_LBL_DIR, exist_ok=True)
 
 # collects relevant data from the camera image used to train yolo
 def get_camera(env, width=640, height=480):
@@ -43,8 +52,8 @@ def get_camera(env, width=640, height=480):
         renderer=p.ER_BULLET_HARDWARE_OPENGL
     )
 
-    print("Unique seg IDs:", np.unique(seg))
-    print("Runner ID in seg?:", env.runner in np.unique(seg))
+    # print("Unique seg IDs:", np.unique(seg))
+    # print("Runner ID in seg?:", env.runner in np.unique(seg))
 
     rgb = np.reshape(rgb, (height, width, 4))[:, :, :3]
     seg = np.reshape(seg, (height, width))
@@ -93,13 +102,18 @@ def get_runner_seg_ids(env, seg):
     if not np.any(runner_mask):
        print("Runner not visible in segmentation image.")
 
-    print(f"Runner pixels found: {np.count_nonzero(runner_mask)}")
+    # print(f"Runner pixels found: {np.count_nonzero(runner_mask)}")
 
     return runner_mask
 
 if __name__ == "__main__":
-    for i in range(2500): # collect 2,500 samples
-        print(f"\n===== IMAGE {i} =====")
+    target_samples = 3500
+    saved = 0
+    accepted = 0
+    rejected = 0
+
+    while saved < target_samples: # collect 2,500 samples
+        print(f"\n===== IMAGE {saved} =====")
 
         env.reset()
 
@@ -108,48 +122,55 @@ if __name__ == "__main__":
 
         dist = np.linalg.norm(np.array(runner_pos[:2]) - np.array(chaser_pos[:2]))
 
-        if dist < 3.0:
-            continue  # reject sample, try again
+        # is_edge_case = dist < 4.0 or dist > 14.0
+
+        # if dist < 3.0:
+        #     continue  # reject sample, try again
 
         # get camera data
         rgb, seg = get_camera(env)
 
         # DEBUGGING PRINT STATEMENTS
-        rx, ry = get_relative_position(
-            chaser_pos,
-            chaser_orn,
-            runner_pos
-        )
+        # rx, ry = get_relative_position(
+        #     chaser_pos,
+        #     chaser_orn,
+        #     runner_pos
+        # )
 
-        print("Runner pos:", runner_pos)
-        print("Chaser pos:", chaser_pos)
-        print(f"Runner relative position: ({rx:.2f}, {ry:.2f})")
+        # print("Runner pos:", runner_pos)
+        # print("Chaser pos:", chaser_pos)
+        # print(f"Runner relative position: ({rx:.2f}, {ry:.2f})")
 
-        print("Unique seg IDs:", np.unique(seg))
+        # print("Unique seg IDs:", np.unique(seg))
 
-        for sid in np.unique(seg):
-            if sid < 0:
-                continue
+        # for sid in np.unique(seg):
+        #     if sid < 0:
+        #         continue
 
-            object_id = sid & ((1 << 24) - 1)
-            link_index = (sid >> 24) - 1
+        #     object_id = sid & ((1 << 24) - 1)
+        #     link_index = (sid >> 24) - 1
 
-            print(
-                f"seg={sid}, object={object_id}, link={link_index}"
-            )
+        #     print(
+        #         f"seg={sid}, object={object_id}, link={link_index}"
+        #     )
 
         runner_mask = get_runner_seg_ids(env, seg)
 
         print("Runner pixels:", np.count_nonzero(runner_mask))
 
-        print(f"[{i}] Runner body ID:", env.runner)
+        # print(f"[{i}] Runner body ID:", env.runner)
 
         object_ids = seg & ((1 << 24) - 1)
 
         print("Runner hit:", np.any(object_ids == env.runner))
 
         # save rgb image
-        img_path = f"{IMG_DIR}/{i}.png"
+        # if is_edge_case:
+        #     img_path = f"{EDGE_IMG_DIR}/{saved}.png"
+        # else:
+        #     img_path = f"{IMG_DIR}/{saved}.png"
+
+        img_path = f"{IMG_DIR}/{saved}.png"
         cv2.imwrite(img_path, cv2.cvtColor(rgb, cv2.COLOR_RGB2BGR))
 
         # # save segmentation image for debugging
@@ -157,7 +178,7 @@ if __name__ == "__main__":
         # seg_vis /= seg_vis.max() + 1e-6
         # seg_vis = (seg_vis * 255).astype(np.uint8)
 
-        # seg_path = f"{SEG_DIR}/{i}.png"
+        # seg_path = f"{SEG_DIR}/{saved}.png"
         # cv2.imwrite(seg_path, seg_vis)
 
         # # obstacles still use segmentation IDs - removing for now as we're focusing on runner detection, but we can add back later if needed
@@ -175,15 +196,60 @@ if __name__ == "__main__":
             x_min, x_max = xs.min(), xs.max()
             y_min, y_max = ys.min(), ys.max()
 
-            x_center = (x_min + x_max) / 2 / seg.shape[1]
-            y_center = (y_min + y_max) / 2 / seg.shape[0]
-            width = (x_max - x_min) / seg.shape[1]
-            height = (y_max - y_min) / seg.shape[0]
+            bbox_area = (x_max - x_min) * (y_max - y_min)
+            visible_area = len(xs)
 
-            labels = [f"0 {x_center:.6f} {y_center:.6f} {width:.6f} {height:.6f}"]
+            # DEBUG PRINTS
+            print("bbox_area:", bbox_area)
+            print("visible_area:", visible_area)
+
+            # HARD FILTER 1: tiny fragments FIRST
+            if visible_area < 200:
+                cv2.imwrite(
+                    f"{REJECT_DIR}/{saved}.png",
+                    cv2.cvtColor(rgb, cv2.COLOR_RGB2BGR)
+                )
+                labels = []
+            else:
+
+                # only compute ratio if object is big enough
+                if bbox_area < 1:
+                    labels = []
+                else:
+                    visibility_ratio = visible_area / (bbox_area + 1e-6)
+                    print("ratio:", visibility_ratio)
+
+                    # HARD FILTER 2: bbox sanity
+                    if bbox_area < 80:
+                        labels = []
+
+                    elif visibility_ratio < 0.5:
+                        cv2.imwrite(
+                            f"{REJECT_DIR}/{saved}.png",
+                            cv2.cvtColor(rgb, cv2.COLOR_RGB2BGR)
+                        )
+                        labels = []
+
+                    else:
+                        x_center = (x_min + x_max) / 2 / seg.shape[1]
+                        y_center = (y_min + y_max) / 2 / seg.shape[0]
+                        width = (x_max - x_min) / seg.shape[1]
+                        height = (y_max - y_min) / seg.shape[0]
+
+                        labels = [f"0 {x_center:.6f} {y_center:.6f} {width:.6f} {height:.6f}"]
+        
+                accepted += 1 if labels else 0
+                rejected += 1 if not labels else 0
+
         else:
             labels = [] # no runner visible, no labels
 
-        with open(f"{LBL_DIR}/{i}.txt", "w") as f:
+        with open(f"{LBL_DIR}/{saved}.txt", "w") as f:
             for l in labels:
                 f.write(l + "\n")
+
+        saved += 1
+
+        print("accepted:", accepted)
+        print("rejected:", rejected)
+        print(f"Saved {saved}/{target_samples}")
