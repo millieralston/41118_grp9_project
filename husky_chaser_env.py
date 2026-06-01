@@ -209,26 +209,7 @@ class HuskyChaserEnv(gym.Env):
         return get_observation(self)
 
     def get_camera_image(self):
-        pos, orn = p.getBasePositionAndOrientation(self.chaser)
-        rot_matrix = p.getMatrixFromQuaternion(orn)
-        forward = [rot_matrix[0], rot_matrix[3], rot_matrix[6]]
-        
-        cam_pos = [pos[0] + forward[0]*0.5, pos[1] + forward[1]*0.5, pos[2] + 0.6]
-        target = [pos[0] + forward[0]*3, pos[1] + forward[1]*3, pos[2] + 0.4]
-        
-        view_matrix = p.computeViewMatrix(cam_pos, target, [0, 0, 1])
-        proj_matrix = p.computeProjectionMatrixFOV(60, 1.0, 0.1, 100.0)
-        
-        img_data = p.getCameraImage(64, 64, view_matrix, proj_matrix, 
-                                    renderer=p.ER_BULLET_HARDWARE_OPENGL)
-        
-        rgb = img_data[2]
-        if isinstance(rgb, tuple):
-            rgb = np.array(rgb, dtype=np.uint8).reshape(64, 64, 4)
-        else:
-            rgb = np.array(rgb, dtype=np.uint8).reshape(64, 64, 4)
-        
-        return rgb[:, :, :3]
+        return self._get_camera_image(64, 64)
 
     # step function applies the action to the chaser, moves the runner, steps the simulation, and calculates the reward and termination status.
     def step(self, action):
@@ -765,12 +746,23 @@ class HuskyChaserEnv(gym.Env):
         # Random distance in front of chaser
         r = np.random.rand()
 
-        if r < 0.3:
-            dist = np.random.uniform(4.0, 8.0) # close
-        elif r < 0.7:
-            dist = np.random.uniform(8.0, 12.0) # medium
+        # for generating regular cases w/ good distribution of distances
+        if r < 0.2:
+            dist = np.random.uniform(1.0, 4.0)   # close / partial crop cases
+        elif r < 0.5:
+            dist = np.random.uniform(4.0, 8.0)
+        elif r < 0.8:
+            dist = np.random.uniform(8.0, 12.0)
         else:
-            dist = np.random.uniform(12.0, 16.0) # far
+            dist = np.random.uniform(12.0, 16.0)
+
+        # # for generating edge cases
+        # if r < 0.45:
+        #     dist = np.random.uniform(1.0, 4.0)   # close / partial crop cases
+        # elif r < 0.5:
+        #     dist = np.random.uniform(4.0, 8.0)
+        # else:
+        #     dist = np.random.uniform(12.0, 16.0)
 
         # Random sideways offset
         side = np.random.uniform(-lateral_spread, lateral_spread)
@@ -832,6 +824,40 @@ class HuskyChaserEnv(gym.Env):
                 return True
 
         return False
+    
+    def get_camera_image_yolo(self):
+        return self._get_camera_image(640, 480)
+    
+    def _get_camera_image(self, width, height):
+        pos, orn = p.getBasePositionAndOrientation(self.chaser)
+        rot_matrix = p.getMatrixFromQuaternion(orn)
+        forward = [rot_matrix[0], rot_matrix[3], rot_matrix[6]]
+
+        cam_pos = [
+            pos[0] + forward[0]*0.5,
+            pos[1] + forward[1]*0.5,
+            pos[2] + 0.6
+        ]
+
+        target = [
+            pos[0] + forward[0]*3,
+            pos[1] + forward[1]*3,
+            pos[2] + 0.4
+        ]
+
+        view_matrix = p.computeViewMatrix(cam_pos, target, [0, 0, 1])
+        proj_matrix = p.computeProjectionMatrixFOV(60, 1.0, 0.1, 100.0)
+
+        img_data = p.getCameraImage(
+            width,
+            height,
+            view_matrix,
+            proj_matrix,
+            renderer=p.ER_BULLET_HARDWARE_OPENGL
+        )
+
+        rgb = np.array(img_data[2], dtype=np.uint8).reshape(height, width, 4)
+        return rgb[:, :, :3]
 
     def close(self):
         if p.isConnected():

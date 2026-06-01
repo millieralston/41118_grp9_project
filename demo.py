@@ -8,6 +8,9 @@ import pybullet_data
 from stable_baselines3 import PPO
 from husky_chaser_env import HuskyChaserEnv
 import time
+from ultralytics import YOLO
+import cv2
+import numpy as np
 
 def run_demo(model_path="husky_chaser_ppo_final", num_episodes=5, steps_per_episode=1000):
     """
@@ -18,7 +21,9 @@ def run_demo(model_path="husky_chaser_ppo_final", num_episodes=5, steps_per_epis
         num_episodes: Number of episodes to run
         steps_per_episode: Max steps per episode
     """
-    
+    # Load the trained YOLO model
+    yolo_model = YOLO("runs/detect/yolo_training/runner_detector_v2/weights/best.pt")
+
     print(f"Loading model from {model_path}...")
     try:
         model = PPO.load(model_path)
@@ -40,8 +45,22 @@ def run_demo(model_path="husky_chaser_ppo_final", num_episodes=5, steps_per_epis
                 # Get action from trained model
                 action, _states = model.predict(obs, deterministic=True)
                 obs, reward, terminated, truncated, info = env.step(action)
-                
+
                 episode_reward += reward
+                
+                # --- YOLO perception stream ---
+                cam_img = env.get_camera_image_yolo()
+
+                if step % 2 == 0:
+                    results = yolo_model(cam_img)[0]
+                
+                annotated = results.plot()
+
+                # make it easier to see
+                annotated = cv2.resize(annotated, (960, 720))
+
+                cv2.imshow("YOLO View (Demo)", annotated)
+                cv2.waitKey(1)
                 
                 # Small delay for visual clarity
                 time.sleep(0.01)

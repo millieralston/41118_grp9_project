@@ -1,3 +1,5 @@
+import random
+
 import cv2
 import os
 
@@ -36,20 +38,28 @@ def draw_boxes(img_path, label_path):
 
 
 if __name__ == "__main__":
+    all_images = [f for f in os.listdir(IMG_DIR) if f.endswith(".png")]
 
-    for i in range(50):   # inspect first 50 samples
-        img_path = f"{IMG_DIR}/{i}.png"
-        lbl_path = f"{LBL_DIR}/{i}.txt"
+    print("Num images found:", len(all_images))
 
-        if not os.path.exists(img_path):
-            continue
+    if len(all_images) == 0:
+        print("No images found. Check dataset path.")
+        exit()
+
+    random.shuffle(all_images)
+
+    for img_name in all_images[:10]:
+        print("Showing:", img_name)
+
+        img_path = f"{IMG_DIR}/{img_name}"
+        lbl_path = f"{LBL_DIR}/{img_name.replace('.png', '.txt')}"
 
         vis = draw_boxes(img_path, lbl_path)
 
         cv2.imshow("YOLO sanity check", vis)
-
         key = cv2.waitKey(0)
-        if key == 27:  # ESC to quit
+
+        if key == 27:
             break
 
     cv2.destroyAllWindows()
