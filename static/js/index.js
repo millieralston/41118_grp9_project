@@ -31,9 +31,9 @@ $(document).ready(function() {
 
     var options = {
 			slidesToScroll: 1,
-			slidesToShow: 3,
-			loop: true,
-			infinite: true,
+			slidesToShow: 1,
+			loop: false,
+			infinite: false,
 			autoplay: false,
 			autoplaySpeed: 3000,
     }

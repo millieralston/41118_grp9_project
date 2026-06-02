@@ -831,6 +831,20 @@ class HuskyChaserEnv(gym.Env):
     
     def get_camera_image_yolo(self):
         return self._get_camera_image(640, 480)
+
+    def get_preview_image(self, width=320, height=240):
+        """Capture a frame using the software renderer — works in DIRECT mode."""
+        pos, orn = p.getBasePositionAndOrientation(self.chaser)
+        rot_matrix = p.getMatrixFromQuaternion(orn)
+        forward = [rot_matrix[0], rot_matrix[3], rot_matrix[6]]
+        cam_pos = [pos[0] + forward[0]*0.5, pos[1] + forward[1]*0.5, pos[2] + 0.6]
+        target  = [pos[0] + forward[0]*3,   pos[1] + forward[1]*3,   pos[2] + 0.4]
+        view_matrix = p.computeViewMatrix(cam_pos, target, [0, 0, 1])
+        proj_matrix = p.computeProjectionMatrixFOV(60, width / height, 0.1, 100.0)
+        img_data = p.getCameraImage(width, height, view_matrix, proj_matrix,
+                                    renderer=p.ER_TINY_RENDERER)
+        rgb = np.array(img_data[2], dtype=np.uint8).reshape(height, width, 4)
+        return rgb[:, :, :3]
     
     def _get_camera_image(self, width, height):
         pos, orn = p.getBasePositionAndOrientation(self.chaser)

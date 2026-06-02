@@ -143,7 +143,17 @@ class TipBotTrainingGUI:
         self.tb_canvas = FigureCanvasTkAgg(self.tb_fig, master=tb_tab)
         self.tb_canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
 
+        # Tab 3: Sim View
+        sim_tab = ttk.Frame(chart_notebook)
+        chart_notebook.add(sim_tab, text="  Sim View  ")
+
+        self._sim_photo = None
+        self.sim_image_label = tk.Label(sim_tab, text="No preview yet.\nStart training to see the live simulation.",
+                                        bg="#1e1e1e", fg="#aaaaaa", font=(None, 11))
+        self.sim_image_label.pack(fill=tk.BOTH, expand=True)
+
         self._populate_tb_runs()
+        self._poll_sim_view()
         self.log("Ready")
 
     # ── TensorBoard log viewer ───────────────────────────────────────────────
@@ -348,6 +358,22 @@ class TipBotTrainingGUI:
         except Exception as e:
             self.log(f"TensorBoard error: {e}")
             messagebox.showerror("Error", f"Could not open TensorBoard: {e}")
+
+    # ── Sim View ──────────────────────────────────────────────────────────────
+
+    def _poll_sim_view(self):
+        path = "preview_frame.png"
+        if os.path.exists(path):
+            try:
+                from PIL import Image, ImageTk
+                img = Image.open(path).copy()
+                img = img.resize((640, 400), Image.LANCZOS)
+                photo = ImageTk.PhotoImage(img)
+                self.sim_image_label.config(image=photo, text="", bg="#1e1e1e")
+                self._sim_photo = photo
+            except Exception:
+                pass
+        self.root.after(1000, self._poll_sim_view)
 
     # ── Logging ───────────────────────────────────────────────────────────────
 

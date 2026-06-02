@@ -1,8 +1,9 @@
 import argparse
 from pathlib import Path
 
+import cv2
 from stable_baselines3 import PPO
-from stable_baselines3.common.callbacks import CheckpointCallback
+from stable_baselines3.common.callbacks import BaseCallback, CallbackList, CheckpointCallback
 from stable_baselines3.common.env_util import make_vec_env
 from stable_baselines3.common.vec_env import VecMonitor
 
@@ -20,7 +21,25 @@ from husky_chaser_env import HuskyChaserEnv
 
 # PPO needs more than a smoke-test run to learn stable pursuit. Lower this if
 # you only want to verify that the pipeline starts.
+PREVIEW_FRAME_PATH = "preview_frame.png"
 TOTAL_TIMESTEPS = 120_000
+
+
+class PreviewCallback(BaseCallback):
+    """Saves a camera frame to disk every `freq` steps for the GUI to display."""
+    def __init__(self, base_env, freq=256):
+        super().__init__()
+        self._base_env = base_env
+        self.freq = freq
+
+    def _on_step(self):
+        if self.n_calls % self.freq == 0:
+            try:
+                rgb = self._base_env.get_preview_image()
+                cv2.imwrite(PREVIEW_FRAME_PATH, cv2.cvtColor(rgb, cv2.COLOR_RGB2BGR))
+            except Exception:
+                pass
+        return True
 TENSORBOARD_LOG_DIR = "./husky_ppo_logs/"
 CHECKPOINT_DIR = "./checkpoints/"
 FINAL_MODEL_PATH = "husky_chaser_ppo_final"
@@ -113,6 +132,10 @@ def main():
         name_prefix="husky_chaser_ppo",
     )
 
+    base_env = vec_env.venv.envs[0]
+    preview_callback = PreviewCallback(base_env, freq=256)
+    callback = CallbackList([checkpoint_callback, preview_callback])
+
     # Old eval callback kept for reference. We can add this back later with a separate eval env.
     # eval_callback = EvalCallback(
     #     vec_env,
@@ -127,7 +150,7 @@ def main():
     try:
         model.learn(
             total_timesteps=args.timesteps,
-            callback=checkpoint_callback,
+            callback=callback,
             tb_log_name="ppo_husky_chaser_mlp",
         )
 
