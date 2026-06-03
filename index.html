@@ -93,7 +93,7 @@
           <h1 class="title is-1 publication-title">41118 Group 9: TipBot</h1>
           <div class="is-size-5 publication-authors">
             <span class="author-block">
-              <a href="author-block">Millie Ralston</a><sup>1</sup>,</span>
+              <a href="https://au.linkedin.com/in/millie-ralston" target="_blank" rel="noopener noreferrer">Millie Ralston</a><sup>1</sup>,</span>
             <span class="author-block">
               <a href="author-block">Eliza Tam</a><sup>1</sup>,</span>
             <span class="author-block">
@@ -299,6 +299,10 @@
             frames from the simulation and annotates detected runner instances in real time, demonstrating
             a full sim-to-model visual perception pipeline.
           </p>
+          <div class="has-text-centered" style="margin-top:1rem;">
+            <img src="./static/images/cnn1.webp" alt="CNN visualization" style="max-width:100%; height:auto; max-height:360px;" />
+            <p class="is-size-7" style="margin-top:0.5rem;">CNN feature map / detection example</p>
+          </div>
         </div>
       </div>
       <!--/ YOLO/CNN. -->
@@ -377,21 +381,22 @@
 
         <div class="content has-text-justified">
           <p>
-            There's a lot of excellent work that was introduced around the same time as ours.
+            See the video excerpt below for a demo of the Husky chase intercepting the runner based on just our 
+            MLP policy.
           </p>
-          <p>
-            <a href="https://arxiv.org/abs/2104.09125">Progressive Encoding for Neural Optimization</a> introduces an idea similar to our windowed position encoding for coarse-to-fine optimization.
-          </p>
-          <p>
-            <a href="https://www.albertpumarola.com/research/D-NeRF/index.html">D-NeRF</a> and <a href="https://gvv.mpi-inf.mpg.de/projects/nonrigid_nerf/">NR-NeRF</a>
-            both use deformation fields to model non-rigid scenes.
-          </p>
-          <p>
-            Some works model videos with a NeRF by directly modulating the density, such as <a href="https://video-nerf.github.io/">Video-NeRF</a>, <a href="https://www.cs.cornell.edu/~zl548/NSFF/">NSFF</a>, and <a href="https://neural-3d-video.github.io/">DyNeRF</a>
-          </p>
-          <p>
-            There are probably many more by the time you are reading this. Check out <a href="https://dellaert.github.io/NeRF/">Frank Dellart's survey on recent NeRF papers</a>, and <a href="https://github.com/yenchenlin/awesome-NeRF">Yen-Chen Lin's curated list of NeRF papers</a>.
-          </p>
+          <div class="content has-text-centered">
+            <video id="demo-run-video"
+                   controls
+                   muted
+                   preload
+                   playsinline
+                   width="100%">
+              <source src="./static/videos/demo_run_no_yolo_h264.mp4"
+                      type="video/mp4">
+            </video>
+            <p class="is-size-7" style="margin-top:0.5rem;">Demo: MLP-only chaser behavior (no YOLO annotations)</p>
+            <p class="is-size-7"><a href="./static/videos/demo_run_no_yolo_h264.mp4" download>Download MP4</a> if video won't play</p>
+          </div>
         </div>
       </div>
     </div>
@@ -480,20 +485,33 @@
 
         <div class="content has-text-justified">
           <p>
-            There's a lot of excellent work that was introduced around the same time as ours.
+            This project was a rewarding exploration of integrating reinforcement learning
+            and computer vision for autonomous robotic pursuit. The PPO agent successfully
+            learned to chase and intercept the runner across diverse scenarios, while the
+            YOLO-based perception pipeline provided real-time visual detection capabilities.
+
+            We encountered many challenges with tuning our logic to result in a successful policy
+            and a robust perception model, but the final system demonstrates the potential of
+            combining learned control policies with vision-based perception in a simulated robotics context.
+          </p>
+          <h3 class="title is-4">Millie Ralston</h3>
+          <p>
+            As the person who worked on our environment settup, GUI and portfolio, I found this project to 
+            be a great opportunity to apply my knowledge of Python and PyBullet in a practical context. 
+            The main challenge I had in participating in this as a group project was that because my fellow 
+            team members were leading the charge on MLP and CNN development it was hard for me to find space to
+            meaningfully contribute. And as the portfolio was inexplicably dependent on the completion of their 
+            work, it was hard for me to contribute effectively until the last stage of integration. The way we 
+            chose to integrate the policies with each other meant that our final results were not seen to quite last
+            minute, and I would have liked to have had more time to work on the GUI and portfolio, but I am proud 
+            of the work we did and the final result we achieved.
           </p>
           <p>
-            <a href="https://arxiv.org/abs/2104.09125">Progressive Encoding for Neural Optimization</a> introduces an idea similar to our windowed position encoding for coarse-to-fine optimization.
-          </p>
-          <p>
-            <a href="https://www.albertpumarola.com/research/D-NeRF/index.html">D-NeRF</a> and <a href="https://gvv.mpi-inf.mpg.de/projects/nonrigid_nerf/">NR-NeRF</a>
-            both use deformation fields to model non-rigid scenes.
-          </p>
-          <p>
-            Some works model videos with a NeRF by directly modulating the density, such as <a href="https://video-nerf.github.io/">Video-NeRF</a>, <a href="https://www.cs.cornell.edu/~zl548/NSFF/">NSFF</a>, and <a href="https://neural-3d-video.github.io/">DyNeRF</a>
-          </p>
-          <p>
-            There are probably many more by the time you are reading this. Check out <a href="https://dellaert.github.io/NeRF/">Frank Dellart's survey on recent NeRF papers</a>, and <a href="https://github.com/yenchenlin/awesome-NeRF">Yen-Chen Lin's curated list of NeRF papers</a>.
+            I am not sure how we could have better collaborated on this coding project, perhaps using more
+            of a back and forth approach in pushing code to the repository and integrating it as we went, 
+            rather than waiting for the final stages to integrate everything together, and for other group members
+            to see code worked on locally sooner. I think this would have allowed us to see the results of our 
+            work sooner and iterate on it more effectively.
           </p>
         </div>
       </div>
@@ -504,9 +522,19 @@
 </section>
 
 
+
+
 <section class="section" id="BibTeX">
-  <div class="container is-max-desktop content">
+    <div class="container is-max-desktop content">
     <h2 class="title">BibTeX</h2>
+    <pre><code>@misc{TipBot2026,
+  author    = {Melroop Nijjar, Millie Ralston and Eliza Tam},
+  title     = {TipBot: Reinforcement Learning for Robotic Target Interception},
+  year      = {2026},
+}</code></pre>
+  </div>
+
+  <div class="container is-max-desktop content">
     <pre><code>@article{park2021nerfies,
   author    = {Park, Keunhong and Sinha, Utkarsh and Barron, Jonathan T. and Bouaziz, Sofien and Goldman, Dan B and Seitz, Steven M. and Martin-Brualla, Ricardo},
   title     = {Nerfies: Deformable Neural Radiance Fields},
