@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="description" content="TipBot Documentation — Setup, Training, and Code Reference">
+  <meta name="keywords" content="TipBot, PPO, YOLO, PyBullet, Reinforcement Learning, Robot Pursuit, Documentation">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>TipBot — Docs</title>
+
+  <link href="https://fonts.googleapis.com/css?family=Google+Sans|Noto+Sans|Castoro" rel="stylesheet">
+  <link rel="stylesheet" href="./static/css/bulma.min.css">
+  <link rel="stylesheet" href="./static/css/fontawesome.all.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/jpswalsh/academicons@1/css/academicons.min.css">
+  <link rel="stylesheet" href="./static/css/index.css">
+  <link rel="icon" href="./static/images/favicon.svg">
+
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+  <script defer src="./static/js/fontawesome.all.min.js"></script>
+
+  <style>
+    .docs-nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: #fff;
+      border-bottom: 1px solid #dbdbdb;
+      padding: 0.5rem 1.5rem;
+    }
+    .docs-nav-inner {
+      max-width: 960px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      gap: 1.5rem;
+      flex-wrap: wrap;
+    }
+    .docs-nav a {
+      font-size: 0.88rem;
+      color: #4a4a4a;
+      font-family: 'Google Sans', sans-serif;
+      text-decoration: none;
+      white-space: nowrap;
+    }
+    .docs-nav a:hover { color: #485fc7; }
+    .docs-nav .back-link {
+      margin-right: auto;
+      font-weight: 600;
+      color: #485fc7 !important;
+    }
+    .section-anchor { padding-top: 4rem; margin-top: -3rem; }
+    pre {
+      background: #1e1e2e;
+      color: #cdd6f4;
+      border-radius: 8px;
+      padding: 1.2rem 1.4rem;
+      font-size: 0.9rem;
+      overflow-x: auto;
+    }
+    pre code { background: none; color: inherit; padding: 0; }
+    code {
+      background: #f0f0f7;
+      color: #363636;
+      border-radius: 4px;
+      padding: 0.1em 0.35em;
+      font-size: 0.9em;
+    }
+    .tag-pill {
+      display: inline-block;
+      background: #eff1fb;
+      color: #485fc7;
+      border-radius: 99px;
+      padding: 0.15em 0.75em;
+      font-size: 0.8rem;
+      font-family: 'Noto Sans', sans-serif;
+      margin: 0.15rem;
+    }
+    .repo-table td:first-child code { white-space: nowrap; }
+    .reward-badge {
+      display: inline-block;
+      border-radius: 4px;
+      padding: 0.2em 0.6em;
+      font-weight: 600;
+      font-size: 0.85rem;
+    }
+    .reward-pos { background: #effaf5; color: #257953; }
+    .reward-neg { background: #feecf0; color: #cc0f35; }
+    .reward-neu { background: #eff1fb; color: #485fc7; }
+  </style>
+</head>
+<body>
+
+<!-- Sticky docs nav -->
+<nav class="docs-nav">
+  <div class="docs-nav-inner">
+    <a href="index.html" class="back-link">
+      <span class="icon is-small"><i class="fas fa-arrow-left"></i></span>
+      &nbsp;TipBot
+    </a>
+    <a href="#structure">Repository</a>
+    <a href="#setup">Setup</a>
+    <a href="#training">Training</a>
+    <a href="#demo">Demo</a>
+    <a href="#gui">GUI</a>
+    <a href="#yolo">YOLO</a>
+    <a href="#reward">Reward</a>
+    <a href="#tensorboard">TensorBoard</a>
+  </div>
+</nav>
+
+<!-- Page hero -->
+<section class="hero">
+  <div class="hero-body">
+    <div class="container is-max-desktop">
+      <div class="columns is-centered">
+        <div class="column has-text-centered">
+          <h1 class="title is-2 publication-title">TipBot — Documentation</h1>
+          <p class="subtitle is-5" style="color:#6b6b6b; font-family:'Noto Sans',sans-serif;">
+            Setup · Training · Demo · YOLO · Reward Design · Evaluation
+          </p>
+          <div style="margin-top:1rem;">
+            <span class="tag-pill">UTS 41118</span>
+            <span class="tag-pill">Group 9</span>
+            <span class="tag-pill">PPO</span>
+            <span class="tag-pill">YOLOv11n</span>
+            <span class="tag-pill">PyBullet</span>
+            <span class="tag-pill">Stable Baselines3</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════════════════════ -->
+<!-- 1. REPOSITORY STRUCTURE                                  -->
+<!-- ════════════════════════════════════════════════════════ -->
+<section class="section has-background-light">
+  <div class="container is-max-desktop">
+    <div id="structure" class="section-anchor"></div>
+    <h2 class="title is-3">Repository Structure</h2>
+    <div class="content">
+      <table class="table is-fullwidth is-striped is-hoverable repo-table">
+        <thead>
+          <tr><th>File</th><th>Description</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>husky_chaser_env.py</code></td><td>Main Gymnasium environment — PPO training, scripted runner evasion policy, obstacle physics, reward shaping</td></tr>
+          <tr><td><code>husky_env.py</code></td><td>Earlier, simpler environment variant (kept for reference)</td></tr>
+          <tr><td><code>train.py</code></td><td>PPO training script — MLP policy, TensorBoard logging, auto-resume, checkpointing</td></tr>
+          <tr><td><code>demo.py</code></td><td>Visual demo — runs trained model in GUI mode with optional MP4 recording and YOLO bounding-box overlay</td></tr>
+          <tr><td><code>gui.py</code></td><td>Tkinter control panel — start/stop training and demo, live reward chart, TensorBoard log viewer</td></tr>
+          <tr><td><code>perception.py</code></td><td>8-D observation vector: runner position + 3 nearest obstacles in chaser-local frame</td></tr>
+          <tr><td><code>perception_yolo.py</code></td><td>Experimental 10-D observation: replaces ground-truth runner coords with YOLO detections, adding <code>runner_visible</code> and <code>runner_confidence</code> channels</td></tr>
+          <tr><td><code>collect_yolo_dataset.py</code></td><td>Captures and filters labelled camera frames from simulation for YOLO training (target 3,500 samples)</td></tr>
+          <tr><td><code>split_dataset.py</code></td><td>Train / validation dataset split utility</td></tr>
+          <tr><td><code>train_yolo.py</code></td><td>Fine-tunes YOLOv11n on the collected dataset (100 epochs, patience 20)</td></tr>
+          <tr><td><code>visualise_yolo.py</code></td><td>Overlays YOLO bounding-box labels on dataset images for inspection</td></tr>
+          <tr><td><code>yolo_live_test.py</code></td><td>Live YOLO inference inside a running PyBullet environment</td></tr>
+          <tr><td><code>test.py</code> / <code>test_yolo.py</code></td><td>Development test scripts</td></tr>
+          <tr><td><code>husky_chaser_ppo_final.zip</code></td><td>Final trained PPO model</td></tr>
+          <tr><td><code>husky.urdf</code></td><td>Husky robot URDF model</td></tr>
+          <tr><td><code>dataset.yaml</code></td><td>YOLO dataset configuration</td></tr>
+          <tr><td><code>yolo11n.pt</code></td><td>Base YOLOv11n weights used as fine-tuning starting point</td></tr>
+          <tr><td><code>yolo26n.pt</code></td><td>Alternative YOLO checkpoint</td></tr>
+          <tr><td><code>index.html</code></td><td>Project webpage (this site)</td></tr>
+          <tr><td><code>checkpoints/</code></td><td>PPO step checkpoints saved every 10,000 timesteps during training</td></tr>
+          <tr><td><code>husky_ppo_logs/</code></td><td>TensorBoard training logs</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════════════════════ -->
+<!-- 2. SETUP                                                 -->
+<!-- ════════════════════════════════════════════════════════ -->
+<section class="section">
+  <div class="container is-max-desktop">
+    <div id="setup" class="section-anchor"></div>
+    <h2 class="title is-3">Setup</h2>
+    <div class="content">
+
+      <h3 class="title is-5">1 — Activate the virtual environment</h3>
+      <pre><code>source venv/bin/activate</code></pre>
+
+      <h3 class="title is-5" style="margin-top:1.5rem;">2 — Install dependencies</h3>
+      <pre><code>pip install -r requirements.txt</code></pre>
+
+      <p>Or install core packages directly:</p>
+      <pre><code>pip install gymnasium pybullet stable-baselines3 opencv-python \
+    ultralytics torch torchvision tensorboard matplotlib</code></pre>
+
+      <article class="message is-info" style="margin-top:1.5rem;">
+        <div class="message-header"><p>Note on ultralytics</p></div>
+        <div class="message-body">
+          <code>ultralytics</code> is required for YOLO annotations in the demo and for training the detector.
+          The PPO training pipeline and demo run without it — raw camera frames are shown instead of annotated boxes.
+        </div>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════════════════════ -->
+<!-- 3. TRAINING                                              -->
+<!-- ════════════════════════════════════════════════════════ -->
+<section class="section has-background-light">
+  <div class="container is-max-desktop">
+    <div id="training" class="section-anchor"></div>
+    <h2 class="title is-3">Training the PPO Agent</h2>
+    <div class="content">
+
+      <pre><code>python train.py --timesteps 120000</code></pre>
+
+      <p>This script:</p>
+      <ul>
+        <li>Creates <code>HuskyChaserEnv</code> in <strong>DIRECT</strong> mode (headless) for fast training</li>
+        <li>Uses Stable Baselines3 PPO with an <strong>MLP policy</strong> (lr=3e-4, n_steps=512, batch=64)</li>
+        <li>Saves step checkpoints every 10,000 timesteps to <code>checkpoints/</code></li>
+        <li>Logs task-specific metrics — distance, capture rate, collisions — to TensorBoard</li>
+        <li>Writes the final model to <code>husky_chaser_ppo_final.zip</code></li>
+      </ul>
+
+      <h3 class="title is-5" style="margin-top:1.5rem;">Resume from checkpoint</h3>
+      <pre><code>python train.py --resume husky_chaser_ppo_final.zip</code></pre>
+
+      <h3 class="title is-5" style="margin-top:1rem;">Force fresh training</h3>
+      <pre><code>python train.py --fresh-start --timesteps 120000</code></pre>
+
+      <article class="message is-warning" style="margin-top:1.5rem;">
+        <div class="message-header"><p>PyBullet parallelism</p></div>
+        <div class="message-body">
+          The environment uses PyBullet's global API, so <code>n_envs</code> is kept at 1.
+          Running multiple environments in parallel requires binding each PyBullet call to a separate
+          <code>physicsClientId</code>.
+        </div>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════════════════════ -->
+<!-- 4. DEMO                                                  -->
+<!-- ════════════════════════════════════════════════════════ -->
+<section class="section">
+  <div class="container is-max-desktop">
+    <div id="demo" class="section-anchor"></div>
+    <h2 class="title is-3">Running the Demo</h2>
+    <div class="content">
+
+      <pre><code>python demo.py --model husky_chaser_ppo_final --episodes 5</code></pre>
+
+      <h3 class="title is-5" style="margin-top:1.5rem;">Record to MP4</h3>
+      <pre><code>python demo.py --model husky_chaser_ppo_final --episodes 5 \
+    --record --out recordings/demo_run.mp4</code></pre>
+
+      <p>
+        If YOLO weights are present at
+        <code>runs/detect/yolo_training/runner_detector_v2/weights/best.pt</code>,
+        the recording will include annotated detection boxes drawn on the chaser's camera feed.
+        Otherwise the raw camera image is used as a fallback.
+      </p>
+
+      <h3 class="title is-5" style="margin-top:1.5rem;">Arguments</h3>
+      <table class="table is-fullwidth is-striped">
+        <thead><tr><th>Argument</th><th>Default</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>--model</code></td><td><code>husky_chaser_ppo_final</code></td><td>Model path (without .zip extension)</td></tr>
+          <tr><td><code>--episodes</code></td><td><code>5</code></td><td>Number of episodes to run</td></tr>
+          <tr><td><code>--steps</code></td><td><code>1000</code></td><td>Max steps per episode</td></tr>
+          <tr><td><code>--record</code></td><td>off</td><td>Record annotated demo to MP4</td></tr>
+          <tr><td><code>--out</code></td><td>auto timestamped</td><td>Output file path for recording</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════════════════════ -->
+<!-- 5. GUI                                                   -->
+<!-- ════════════════════════════════════════════════════════ -->
+<section class="section has-background-light">
+  <div class="container is-max-desktop">
+    <div id="gui" class="section-anchor"></div>
+    <h2 class="title is-3">GUI Launcher</h2>
+    <div class="content">
+
+      <pre><code>python gui.py</code></pre>
+
+      <p>
+        The Tkinter control panel provides a graphical interface for the full TipBot pipeline
+        without touching the command line after launch.
+      </p>
+
+      <div class="columns" style="margin-top:1.5rem;">
+        <div class="column">
+          <div class="box">
+            <p class="heading">Training</p>
+            <p>Start / Stop Training — launches <code>train.py</code> as a subprocess and streams its console output live into the log panel.</p>
+          </div>
+        </div>
+        <div class="column">
+          <div class="box">
+            <p class="heading">Demo</p>
+            <p>Run / Stop Demo — launches <code>demo.py</code> in a separate window. Requires <code>husky_chaser_ppo_final.zip</code> to be present.</p>
+          </div>
+        </div>
+        <div class="column">
+          <div class="box">
+            <p class="heading">TensorBoard</p>
+            <p>Opens TensorBoard on <code>http://localhost:6006</code> pointing at <code>./husky_ppo_logs/</code>.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="columns">
+        <div class="column">
+          <div class="box">
+            <p class="heading">Live Reward Chart</p>
+            <p>Parses Stable Baselines3 stdout in real time and plots mean episode reward vs timesteps as training progresses.</p>
+          </div>
+        </div>
+        <div class="column">
+          <div class="box">
+            <p class="heading">TF Log Viewer</p>
+            <p>Loads saved TensorBoard event files and displays six key scalars — reward, episode length, policy loss, value loss, entropy, and explained variance — side by side.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════════════════════ -->
+<!-- 6. YOLO                                                  -->
+<!-- ════════════════════════════════════════════════════════ -->
+<section class="section">
+  <div class="container is-max-desktop">
+    <div id="yolo" class="section-anchor"></div>
+    <h2 class="title is-3">YOLO Dataset &amp; Detection</h2>
+    <div class="content">
+
+      <h3 class="title is-5">Step 1 — Collect labelled frames from simulation</h3>
+      <pre><code>python collect_yolo_dataset.py</code></pre>
+      <p>
+        Captures up to 3,500 labelled camera frames from the chaser's onboard 640×480 camera.
+        Ground-truth bounding boxes are derived automatically from PyBullet's segmentation mask.
+        A two-stage quality filter rejects frames where the runner covers fewer than 200 pixels
+        or where the visibility ratio (visible pixels ÷ bounding box area) falls below 0.5.
+      </p>
+
+      <h3 class="title is-5" style="margin-top:1.5rem;">Step 2 — Split into train / val</h3>
+      <pre><code>python split_dataset.py</code></pre>
+
+      <h3 class="title is-5" style="margin-top:1rem;">Step 3 — Fine-tune YOLOv11n</h3>
+      <pre><code>python train_yolo.py</code></pre>
+      <p>
+        Fine-tunes <code>yolo11n.pt</code> on the collected dataset for up to 100 epochs
+        with early stopping (patience=20). Weights are saved to
+        <code>yolo_training/runner_detector_v2/weights/best.pt</code>.
+      </p>
+
+      <h3 class="title is-5" style="margin-top:1rem;">Step 4 — Test live inference</h3>
+      <pre><code>python yolo_live_test.py</code></pre>
+
+      <article class="message is-success" style="margin-top:1.5rem;">
+        <div class="message-header"><p>Detection performance</p></div>
+        <div class="message-body">
+          The trained model achieved &gt;99% precision and recall on the validation set,
+          with mAP50-95 of 0.975. False negatives were predominantly cases of heavy
+          occlusion behind obstacles.
+        </div>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════════════════════ -->
+<!-- 7. REWARD FUNCTION                                       -->
+<!-- ════════════════════════════════════════════════════════ -->
+<section class="section has-background-light">
+  <div class="container is-max-desktop">
+    <div id="reward" class="section-anchor"></div>
+    <h2 class="title is-3">Reward Function</h2>
+    <div class="content">
+
+      <p>
+        The per-step reward combines a primary pursuit signal with several safety penalties
+        and a large terminal capture bonus. All values below are in reward units.
+      </p>
+
+      <table class="table is-fullwidth is-striped is-hoverable" style="margin-top:1rem;">
+        <thead>
+          <tr><th>Signal</th><th>Value</th><th>Notes</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Catch bonus</td>
+            <td><span class="reward-badge reward-pos">+800</span></td>
+            <td>Contact with runner or distance ≤ 2.3 m — terminates episode</td>
+          </tr>
+          <tr>
+            <td>Closing distance</td>
+            <td><span class="reward-badge reward-pos">+60 × progress</span></td>
+            <td>Progress = reduction in chaser–runner distance this step</td>
+          </tr>
+          <tr>
+            <td>Moving away</td>
+            <td><span class="reward-badge reward-neg">−12 × |loss|</span></td>
+            <td>Applied when distance increases</td>
+          </tr>
+          <tr>
+            <td>Close-range bonus</td>
+            <td><span class="reward-badge reward-pos">+1.8 × (5 − dist)</span></td>
+            <td>Active within 5 m — rewards sustained pressure on runner</td>
+          </tr>
+          <tr>
+            <td>Obstacle contact</td>
+            <td><span class="reward-badge reward-neg">−3.0 to −4.5</span></td>
+            <td>Grows by 0.15 per consecutive contact step (up to 10 steps)</td>
+          </tr>
+          <tr>
+            <td>Wall contact</td>
+            <td><span class="reward-badge reward-neg">−4.0</span></td>
+            <td>Per step in contact with arena fence</td>
+          </tr>
+          <tr>
+            <td>Wall boundary crossed</td>
+            <td><span class="reward-badge reward-neg">−5.0</span></td>
+            <td>Chaser enters the 1 m inner margin of the 20×20 arena</td>
+          </tr>
+          <tr>
+            <td>Stuck terminal</td>
+            <td><span class="reward-badge reward-neg">−35</span></td>
+            <td>80 consecutive steps where forward action &gt; 0.4 but position barely changes</td>
+          </tr>
+          <tr>
+            <td>Obstacle contact terminal</td>
+            <td><span class="reward-badge reward-neg">−35</span></td>
+            <td>45 consecutive contact steps with an obstacle</td>
+          </tr>
+          <tr>
+            <td>Flip terminal</td>
+            <td><span class="reward-badge reward-neg">−100</span></td>
+            <td>Roll or pitch exceeds 1.0 rad</td>
+          </tr>
+          <tr>
+            <td>Step cost</td>
+            <td><span class="reward-badge reward-neu">−0.01 to −0.025</span></td>
+            <td>Base −0.01 plus a time-increasing term up to −0.025 by episode end</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3 class="title is-5" style="margin-top:2rem;">Observation Vector (8-D)</h3>
+      <p>
+        The PPO MLP receives an 8-dimensional vector in the chaser's local frame at every step.
+        Relative coordinates make the policy learn "where is the target relative to me?" rather
+        than memorising absolute arena positions.
+      </p>
+      <table class="table is-fullwidth is-striped">
+        <thead><tr><th>Index</th><th>Channel</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td>0</td><td><code>runner_x</code></td><td>Runner position ahead/behind chaser (local x)</td></tr>
+          <tr><td>1</td><td><code>runner_y</code></td><td>Runner lateral offset from chaser (local y)</td></tr>
+          <tr><td>2–3</td><td><code>obs1_x, obs1_y</code></td><td>Nearest obstacle in chaser frame</td></tr>
+          <tr><td>4–5</td><td><code>obs2_x, obs2_y</code></td><td>Second-nearest obstacle</td></tr>
+          <tr><td>6–7</td><td><code>obs3_x, obs3_y</code></td><td>Third-nearest obstacle (zero-padded if &lt; 3 present)</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════════════════════ -->
+<!-- 9. TENSORBOARD                                           -->
+<!-- ════════════════════════════════════════════════════════ -->
+<section class="section has-background-light">
+  <div class="container is-max-desktop">
+    <div id="tensorboard" class="section-anchor"></div>
+    <h2 class="title is-3">TensorBoard Logs</h2>
+    <div class="content">
+
+      <pre><code>tensorboard --logdir ./husky_ppo_logs/</code></pre>
+      <p>Then open <strong>http://localhost:6006</strong> in your browser.</p>
+
+      <p>The custom <code>TaskMetricsCallback</code> in <code>train.py</code> logs the following beyond standard SB3 metrics:</p>
+
+      <div class="columns" style="margin-top:1rem;">
+        <div class="column">
+          <p class="heading">Continuous (per rollout)</p>
+          <ul>
+            <li><code>task/distance_to_runner</code></li>
+            <li><code>task/chaser_movement</code></li>
+            <li><code>task/min_obstacle_distance</code></li>
+            <li><code>task/wall_clearance</code></li>
+            <li><code>task/near_target</code></li>
+          </ul>
+        </div>
+        <div class="column">
+          <p class="heading">Episode flags (per episode)</p>
+          <ul>
+            <li><code>task_episode/caught</code></li>
+            <li><code>task_episode/is_success</code></li>
+            <li><code>task_episode/collision</code></li>
+            <li><code>task_episode/fell_over</code></li>
+            <li><code>task_episode/ended_stuck</code></li>
+            <li><code>task_episode/truncated</code></li>
+          </ul>
+        </div>
+      </div>
+
+      <article class="message is-info" style="margin-top:1rem;">
+        <div class="message-header"><p>GUI shortcut</p></div>
+        <div class="message-body">
+          The <strong>Open TensorBoard</strong> button in <code>gui.py</code> launches TensorBoard automatically
+          and populates the in-app TF Log Viewer with the same data.
+        </div>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- Footer -->
+<footer class="footer">
+  <div class="container">
+    <div class="content has-text-centered">
+      <p style="color:#888; font-size:0.85rem;">
+        TipBot &mdash; UTS 41118 AI in Robotics, Group 9 &mdash; 2026<br>
+        Millie Ralston &middot; Eliza Tam &middot; Melroop Nijjar
+      </p>
+      <p style="margin-top:0.5rem;">
+        <a href="index.html" style="color:#485fc7; font-size:0.85rem;">
+          <span class="icon is-small"><i class="fas fa-arrow-left"></i></span>
+          Back to project page
+        </a>
+      </p>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>
