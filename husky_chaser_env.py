@@ -14,7 +14,9 @@ except Exception:
     YOLO = None
 from perception import create_observation_space, get_observation, get_relative_position
 
-# this is to suppress the noisy URDF importer warnings while keeping normal training logs visible.
+# PyBullet prints repeated URDF warnings when loading the Husky model. They are
+# not PPO training errors, so this keeps console/TensorBoard output readable
+# while still allowing our own logs and exceptions to show normally.
 @contextlib.contextmanager
 def suppress_pybullet_load_warnings():
     """Hide noisy URDF importer warnings while keeping normal training logs visible."""
@@ -46,17 +48,21 @@ def suppress_pybullet_load_warnings():
 class HuskyChaserEnv(gym.Env):
     def __init__(self, render_mode="direct", runner_spawn_mode="random"): # "gui" for visualization, "direct" for fast training
         super().__init__()
+        # PPO controls only the red chaser. The two action values are normalized
+        # to [-1, 1] and later mapped to forward drive and turn rate.
         self.action_space = spaces.Box(low=-1, high=1, shape=(2,), dtype=np.float32)
 
         # Old CNN/image observation space kept for reference.
         # self.observation_space = spaces.Box(low=0, high=255, shape=(64, 64, 3), dtype=np.uint8)
 
-        # MLP/PPO uses a small vector from perception.py instead of camera pixels.
+        # MLP/PPO uses a compact 8-value vector from perception.py instead of
+        # camera pixels: runner relative x/y plus the three closest obstacles.
         self.observation_space = create_observation_space()
         
-        # The play area is a 20x20 square, but the observation space only includes relative positions of the runner and obstacles, 
-        # so the boundary is effectively smaller. The chaser can see obstacles up to about 5 units away, 
-        # but the environment extends beyond that to allow for more natural pursuit and evasion.
+        # boundary=10 means the fenced arena spans x/y -10 to +10, so it is a
+        # 20x20 play area. The policy does not directly observe the walls, so
+        # wall/obstacle clearance is handled through reset validity, runner
+        # behavior, reward penalties, and info metrics.
         self.boundary = 10
         self.obstacle_positions = []
         self.obstacle_body_ids = []
@@ -70,14 +76,17 @@ class HuskyChaserEnv(gym.Env):
             raise ValueError("runner_spawn_mode must be 'random' or 'front'")
         self.runner_spawn_mode = runner_spawn_mode
 
-        # Longer episodes give the chaser time to route around obstacles,
-        # reacquire the runner, and finish the catch.
+        # PPO episodes last up to 1000 environment steps. That is long enough
+        # for routing around trees/benches, reacquiring the runner, and making
+        # a final catch instead of ending too early after one bad turn.
         self.max_steps = 1000
         self.step_count = 0
 
-        # Movement tuning values. These are wheel target velocities, not m/s.
-        # The top speeds are high enough for visible pursuit, while acceleration
-        # and turn scaling are kept conservative to prevent wheelies.
+        # Movement tuning values. These are PyBullet wheel target velocities,
+        # not real m/s. PPO outputs normalized actions, then step() maps them
+        # into this range. The chaser can be faster than the scripted runner
+        # (22.5 vs 13.0 forward target speed), but acceleration, max wheel speed,
+        # downforce, and damping stop the learned policy from exploiting flips.
         self.chaser_min_forward_speed = 1.5
         self.chaser_max_forward_speed = 22.5
         self.chaser_angular_scale = 5.5
@@ -143,8 +152,12 @@ class HuskyChaserEnv(gym.Env):
         p.setAdditionalSearchPath(pybullet_data.getDataPath())
         p.configureDebugVisualizer(p.COV_ENABLE_SHADOWS, 0)
 
-    # the reset function initializes the environment, placing the chaser and runner in valid positions and setting up the obstacles. 
-    # It returns the initial observation and an empty info dictionary.
+    # reset() starts a fresh PPO episode. It rebuilds the PyBullet world,
+    # randomizes 12 trees and 5 benches, spawns the chaser clear of obstacles,
+    # then spawns the runner either randomly at least 5 units away or in front
+    # for demos. It also resets all reward-memory variables such as previous
+    # distance, stuck counters, and reflex state before returning the first
+    # observation vector.
     def reset(self, seed=None, options=None):
         super().reset(seed=seed)
         options = options or {}
@@ -181,7 +194,8 @@ class HuskyChaserEnv(gym.Env):
         self.avoid_turn_direction = 1.0
         self.current_wheel_targets = {}
 
-        # initialising runner visibility and confidence for observation space
+        # Reset runner visibility/cache used by the optional YOLO demo path.
+        # PPO training still uses the relative-position vector observation.
         self.runner_visible = False
         self.runner_confidence = 0.0
         self.last_runner_xy = np.array([0.0, 0.0], dtype=np.float32)
@@ -238,17 +252,16 @@ class HuskyChaserEnv(gym.Env):
             time.sleep(0.1)  # Small delay helps camera stability
         return self._get_obs(), {}
 
-    # Obtain the obstacle and runner positons relative to the chaser, and return them as an observation vector.
+    # Obtain the runner and nearby obstacle positions relative to the chaser.
+    # This vector is what PPO sees at every step.
     def _get_obs(self):
         # Old CNN/image observation kept for reference.
         # return self.get_camera_image()
 
         return get_observation(self)
 
-    # this is the same relative position calculation used in perception.py, 
-    # but included here for debug visualization of the observation space in the GUI. 
-    # It draws lines from the chaser to the runner and obstacles, 
-    # and prints their relative positions in the console.
+    # Camera helpers are used for previews, YOLO demos, and old CNN experiments.
+    # The current PPO policy does not train from these images.
     def get_camera_image(self):
         return self._get_camera_image(64, 64)
 
@@ -292,8 +305,10 @@ class HuskyChaserEnv(gym.Env):
         rgb = np.reshape(rgb, (height, width, 4))[:, :, :3]
         return rgb.astype(np.uint8)
 
-    # step function applies the action to the chaser, moves the runner, steps the simulation,
-    # and calculates the reward and termination status.
+    # step() is the PPO transition function. It takes the policy action,
+    # applies small safety/capture helpers, drives both Huskies through several
+    # physics substeps, then returns (observation, shaped reward, done flags,
+    # info metrics) for the next PPO update.
     def step(self, action):
         self.step_count += 1
         raw_action = np.clip(np.asarray(action, dtype=np.float32), -1.0, 1.0)
@@ -339,7 +354,6 @@ class HuskyChaserEnv(gym.Env):
         info["truncated"] = float(truncated)
         return obs, reward, terminated, truncated, info
 
-    # ... keep your _build_fence, _create_tree, _create_bench, _get_valid_spawn, _drive_husky ...
     def _build_fence(self):
         """Creates a perimeter of boxes around the play area."""
         fence_height = 1.0
@@ -381,8 +395,9 @@ class HuskyChaserEnv(gym.Env):
         p.changeDynamics(bench_id, -1, lateralFriction=1.2, restitution=0.0)
         self.obstacle_body_ids.append(bench_id)
 
-    # This ensures the chaser and runner start in valid positions that are clear of obstacles 
-    # and a certain distance apart from each other.
+    # Shared random spawn helper. It samples inside the fence with a 1.0 unit
+    # margin, rejects positions within 1.2 units of trees/benches, and can also
+    # enforce a minimum distance from another robot such as the runner/chaser.
     def _get_valid_spawn(self, reference_positions=None, min_distance=0.0):
         """Ensures the robot starts clear of obstacles and optional references."""
         reference_positions = reference_positions or []
@@ -409,6 +424,9 @@ class HuskyChaserEnv(gym.Env):
         forward = np.array([np.cos(yaw), np.sin(yaw)], dtype=np.float32)
         lateral = np.array([-forward[1], forward[0]], dtype=np.float32)
 
+        # Demo/front mode puts the runner 4-8 units ahead with a small lateral
+        # offset, then _get_front_runner_spawn() validates that it is still
+        # inside the arena and clear of obstacles.
         distance = np.random.uniform(4.0, 8.0)
         side_offset = np.random.uniform(-2.5, 2.5)
         chaser_xy = np.asarray(chaser_pos[:2], dtype=np.float32)
@@ -471,12 +489,12 @@ class HuskyChaserEnv(gym.Env):
                 restitution=0.0,
             )
 
-    # This function converts the desired linear and angular speeds into individual wheel velocities,
-    # After obtaining its current position and orientation, it calculates the relative position of the runner and obstacles,
-    # this way the chaser can navigate towards the runner while avoiding obstacles. 
-    # It also includes debug visualization of the observation space in the GUI mode.
-    # Furthermore, it gives the runner basic evasive behavior by adjusting its speed and turn rate based on the chaser's position,
-    # as well simple reflexes to avoid collisions with obstacles
+    # Scripted runner used as the moving target for PPO. It is not learned:
+    # each step it scores escape headings by distance from the chaser, alignment
+    # away from the chaser, current heading, and clearance from walls/obstacles.
+    # This gives PPO a consistent but non-trivial opponent, so the learned
+    # chaser must pursue, turn, and recover rather than just drive at a static
+    # target.
     def _scripted_runner_command(self):
         """Pick a runner command that escapes the chaser without driving into hazards."""
         chaser_pos, _ = p.getBasePositionAndOrientation(self.chaser)
@@ -530,7 +548,6 @@ class HuskyChaserEnv(gym.Env):
                 lateral_escape = abs(float(escape_dir[0] * direction[1] - escape_dir[1] * direction[0]))
                 score += lateral_escape * 1.4
 
-            # this scoring system is designed to encourage the runner to pick escape routes that are far from the chaser
             if score > best_score:
                 best_score = score
                 desired_vec = direction
@@ -557,7 +574,9 @@ class HuskyChaserEnv(gym.Env):
 
         return forward_speed, turn_speed
 
-    # this function calculates the relative positions of the runner and obstacles to the chaser, and also includes debug visualization of these positions in the GUI mode.
+    # Clearance is used by the scripted runner to avoid escape routes that would
+    # trap it against walls, trees, or benches. This keeps episodes useful for
+    # PPO because the runner stays mobile instead of getting stuck immediately.
     def _runner_clearance(self, xy):
         """Distance from a candidate runner position to the nearest hazard."""
         wall_clearance = self._wall_clearance(xy)
@@ -569,7 +588,9 @@ class HuskyChaserEnv(gym.Env):
 
         return min(wall_clearance, obstacle_clearance)
 
-    # this function calculates the distance from a candidate runner position to the nearest wall, which is used in the runner's escape behavior to avoid getting pinned against walls.
+    # Distance from a candidate x/y position to the nearest wall. With
+    # boundary=10 and a 0.9 unit margin, values near 0 mean the robot is almost
+    # touching the fence.
     def _wall_clearance(self, xy):
         inner_boundary = self.boundary - 0.9
         left_clearance = float(xy[0] + inner_boundary)
@@ -578,20 +599,18 @@ class HuskyChaserEnv(gym.Env):
         top_clearance = float(inner_boundary - xy[1])
         return min(left_clearance, right_clearance, bottom_clearance, top_clearance)
 
-    # this function calculates the relative positions of the runner and obstacles to the chaser, and also includes debug visualization of these positions in the GUI mode.
     def _yaw_from_orientation(self, orientation):
         return p.getEulerFromQuaternion(orientation)[2]
 
     def _wrap_angle(self, angle):
         return (angle + np.pi) % (2.0 * np.pi) - np.pi
 
-    # This is an important function that blends the PPO action with a short-range obstacle avoidance reflex.
-    # It checks for obstacles in front of the chaser and adjusts the action to steer around them, while still trying to pursue the runner.
-    # while this isn't perfect and can sometimes cause the chaser to take a less direct path, it helps prevent the chaser from getting stuck on obstacles 
-    # and allows for more dynamic pursuit behavior.
-    # additionally, because the environment is constantly loaded in random configurations of trees and benches, 
-    # this reflex helps the chaser learn to navigate around them effectively during training, 
-    # rather than just learning to drive straight towards the runner.
+    # Short-range safety reflex layered on top of the PPO action. This is not
+    # the main strategy: PPO still receives rewards/penalties for progress,
+    # collisions, wall clearance, and stuck states. The reflex only prevents
+    # common dead-end crashes by steering around obstacles detected in a
+    # 5.0-unit lookahead corridor and briefly reversing if the chaser is already
+    # pinned.
     def _apply_chaser_obstacle_reflex(self, action):
         """Blend PPO action with a short-range obstacle avoidance reflex."""
         front_obstacle = self._nearest_front_obstacle()
@@ -636,7 +655,10 @@ class HuskyChaserEnv(gym.Env):
             self.last_avoidance_turn = desired_turn
             return action
 
-        # The closer the obstacle, the stronger the avoidance reflex, with a smooth falloff based on distance and lateral position.
+        # Reflex strength is highest for obstacles that are close and centered:
+        # lookahead=5.0, corridor half-width=1.9. The turn is blended with the
+        # original PPO turn, so the policy can still learn useful steering
+        # instead of being completely overwritten.
         lookahead = 5.0
         corridor_half_width = 1.9
         forward_pressure = float(np.clip((lookahead - obs_x) / lookahead, 0.0, 1.0))
@@ -658,9 +680,10 @@ class HuskyChaserEnv(gym.Env):
         self.last_avoidance_turn = turn_command
         return action
  
-    # This function provides a subtle assist to the chaser when the runner is very close, by nudging the action towards a direct capture attempt.
-    # This helps prevent the chaser from getting stuck in a close-range pursuit where it keeps circling around the runner without actually catching it,
-    # which can be a common failure mode in pursuit environments.
+    # Close-range target assist. When the runner is inside near_distance=5.0
+    # and no obstacle reflex is active, the action is nudged toward the runner
+    # and given minimum forward drive. The assist strength ramps to 1.0 at the
+    # catch distance of 2.3, mainly preventing endless circling during capture.
     def _apply_close_range_target_assist(self, action):
         """Nudge clear close-range pursuits into a direct capture attempt."""
         runner_x, runner_y = self._relative_runner_position()
@@ -688,7 +711,9 @@ class HuskyChaserEnv(gym.Env):
         self.last_target_assist_strength = assist_strength
         return action
  
-    # This function checks for obstacles in front of the chaser within a certain range and corridor width, and returns the relative position of the closest one.
+    # Finds the nearest tree/bench in the chaser's forward corridor. Relative x
+    # must be 0-5 units ahead and relative y within +/-1.9 units, matching the
+    # reflex lookahead used above.
     def _nearest_front_obstacle(self):
         chaser_pos, chaser_orn = p.getBasePositionAndOrientation(self.chaser)
         closest = None
@@ -708,13 +733,17 @@ class HuskyChaserEnv(gym.Env):
 
         return closest
 
-    # This function calculates the relative position of the runner to the chaser, which is used in both the observation space and the runner's escape behavior.
+    # Relative runner position in the chaser frame. Positive x is ahead of the
+    # chaser; y is lateral error. This same coordinate system is used by the
+    # observation, target assist, and reward alignment terms.
     def _relative_runner_position(self):
         chaser_pos, chaser_orn = p.getBasePositionAndOrientation(self.chaser)
         runner_pos, _ = p.getBasePositionAndOrientation(self.runner)
         return get_relative_position(chaser_pos, chaser_orn, runner_pos)
 
-    # This function applies extra forces and torques to the robot to help stabilize it at high speeds and prevent it from flipping over or getting stuck on obstacles.
+    # Stabilization keeps the high wheel speeds trainable. Extra downforce and
+    # roll/pitch damping reduce wheelies, so PPO is rewarded for pursuit skill
+    # rather than unstable physics exploits.
     def _apply_ground_stabilization(self, robot_id):
         """Apply extra damping/downforce so faster wheel speeds stay drivable."""
         base_pos, orn = p.getBasePositionAndOrientation(robot_id)
@@ -766,9 +795,9 @@ class HuskyChaserEnv(gym.Env):
         ]
         p.applyExternalTorque(robot_id, -1, stabilizing_torque, p.WORLD_FRAME)
             
-    # This function converts the desired linear and angular speeds into individual wheel velocities,
-    # and applies them to the robot's wheel joints. It also includes a ramping mechanism to prevent sudden changes in wheel speed, 
-    # which helps maintain stability and control, especially when the chaser is tilted or navigating rough terrain.
+    # Convert linear/turn commands into left/right wheel velocities. Targets are
+    # clipped to +/-28 and ramped by at most 3.0 per environment step to keep
+    # control smooth enough for PPO to learn from.
     def _drive_husky(self, robot_id, lin_v, ang_v):
         # If the body is already tilted, back off the command before it flips.
         _, orn = p.getBasePositionAndOrientation(robot_id)
@@ -800,12 +829,12 @@ class HuskyChaserEnv(gym.Env):
     def _has_contact_with_any(self, robot_id, body_ids):
         return any(p.getContactPoints(robot_id, body_id) for body_id in body_ids)
 
-    # This is the core reward function that evaluates the current state of the environment 
-    # and calculates the reward for the chaser's action.
-    # It considers multiple factors such as distance to the runner, 
-    # progress towards the runner, obstacle avoidance, and the assistive nudges applied to the action.
-    # The reward is designed to encourage the chaser to pursue the runner effectively while navigating around obstacles and avoiding getting stuck,
-    # rather than just rewarding proximity to the runner, which can lead to local minima where the chaser gets close but fails to actually catch the runner.
+    # Main reward shaping for PPO. The policy is rewarded for reducing distance
+    # to the runner, staying aligned, driving forward when useful, closing the
+    # final 5.0-unit capture range, and actually catching the runner. It is
+    # penalized for moving away, collisions, wall/obstacle crowding, getting
+    # stuck, and unstable roll/pitch. The reflex can help avoid immediate
+    # crashes, but these rewards are what teach PPO the pursuit behavior.
     def _calculate_reward(self):
         # contacts = p.getContactPoints(self.chaser, self.runner)
         # if contacts:
@@ -813,7 +842,8 @@ class HuskyChaserEnv(gym.Env):
         # return -0.1, False
         # Get positions
 
-        # After obtaining the current positions and orientations of the chaser and runner, it calculates the distance between them,
+        # Distance and progress are the primary pursuit signal. Positive
+        # progress means the current step reduced the chaser-runner distance.
         chaser_pos, chaser_orn = p.getBasePositionAndOrientation(self.chaser)
         runner_pos, _ = p.getBasePositionAndOrientation(self.runner)
         chaser_roll, chaser_pitch, _ = p.getEulerFromQuaternion(chaser_orn)
@@ -826,8 +856,8 @@ class HuskyChaserEnv(gym.Env):
             progress = self.prev_distance - distance
         self.prev_distance = distance
 
-        # It also calculates the movement of the chaser since the last step, 
-        # which can be used to reward forward progress and penalize getting stuck.
+        # Movement and clearance values are logged and also used to detect
+        # failure cases such as being pinned against an obstacle.
         chaser_xy = np.array(chaser_pos[:2], dtype=np.float32)
         if self.prev_chaser_xy is None:
             chaser_movement = 0.0
@@ -836,9 +866,9 @@ class HuskyChaserEnv(gym.Env):
         self.prev_chaser_xy = chaser_xy
         min_obstacle_distance = self._nearest_obstacle_distance(chaser_xy)
         wall_clearance = self._wall_clearance(chaser_xy)
-        # info dictionary includes various metrics about the current state of the environment, 
-        # which can be useful for debugging, analysis, and potentially for training auxiliary tasks 
-        # or shaping the reward function in more complex ways.
+        # info exposes the important PPO diagnostics to train.py/TensorBoard:
+        # distance, progress, obstacle/wall clearance, whether reflex/assist
+        # modified the action, and episode-ending failure/success flags.
         info = {
             "distance_to_runner": distance,
             "progress_to_runner": float(progress),
@@ -865,10 +895,7 @@ class HuskyChaserEnv(gym.Env):
             "ended_stuck": 0.0,
         }
  
-        # The finish function is a helper that finalizes the reward and termination status when the episode ends, 
-        # whether due to catching the runner, colliding with an obstacle, getting stuck, or falling over. 
-        # It updates the info dictionary with the reason for termination and whether it was a successful catch 
-        # or a failure mode.
+        # Helper for terminal rewards and TensorBoard flags.
         def finish(final_reward, terminated, reason=None):
             info["terminated"] = float(terminated)
             if reason == "caught":
@@ -886,7 +913,8 @@ class HuskyChaserEnv(gym.Env):
         # reward = -0.05
         # reward += -distance * 0.8
 
-        # if the runner is in front of the chaser, reward more for closing the distance, and if it's behind, penalize more for not catching up.
+        # Alignment tells the reward whether the runner is generally in front
+        # of the chaser and whether the chaser is centered for a clean catch.
         runner_forward_alignment = 0.0
         runner_lateral_error = 0.0
         if distance > 1e-6:
@@ -896,10 +924,11 @@ class HuskyChaserEnv(gym.Env):
 
         forward_action = max(float(self.last_action[0]), 0.0)
 
-        # Reward progress toward the runner instead of heavily punishing distance every step.
-        # does this by rewarding the change in distance (progress) rather than the absolute distance, 
-        # which encourages the chaser to keep moving towards the runner even if it's still far away, 
-        # and also includes a small time penalty to encourage faster catches.
+        # Base reward numbers for the video explanation:
+        # -0.01 step cost, an extra time cost up to -0.015 by episode end,
+        # +60 * progress for closing distance, -12 * lost progress when moving
+        # away, and only -0.01 * distance so the policy is not dominated by
+        # being far away early in the episode.
         reward = -0.01
         reward -= 0.015 * (self.step_count / self.max_steps)
         reward += progress * 60.0
@@ -912,10 +941,10 @@ class HuskyChaserEnv(gym.Env):
         reward += max(runner_forward_alignment, 0.0) * 0.35
         reward += forward_action * max(runner_forward_alignment, 0.0) * 0.12
 
-        # if the runner is within the near distance and generally in front of the chaser, 
-        # provide a stronger reward signal that encourages closing in for the capture.
-        # This includes a significant reward for progress, a bonus for being aligned with the runner, 
-        # and an additional incentive based on the forward action and capture pressure,
+        # Inside near_distance=5.0 the reward becomes more capture-focused:
+        # centered close range adds up to +0.9 * close_range, progress gets an
+        # extra +45 multiplier, moving away gets -10, and forward drive is
+        # rewarded more as capture_pressure approaches 1.0.
         if distance < self.near_distance and runner_forward_alignment > 0.0:
             centered_runner = max(1.0 - runner_lateral_error, 0.0)
             reward += centered_runner * close_range * 0.9
@@ -942,22 +971,21 @@ class HuskyChaserEnv(gym.Env):
             reward -= max(-avoid_alignment, 0.0) * 0.7
             reward += max(progress, 0.0) * 15.0
         
-        # Big bonus for catching
+        # A catch is either physical contact or distance <= catch_distance=2.3.
+        # It ends the episode with +800, much larger than shaping rewards, so
+        # PPO learns that the final objective is capture rather than hovering.
         contacts = p.getContactPoints(self.chaser, self.runner)
         if contacts or distance <= self.catch_distance:
             return finish(800.0, True, "caught")
 
-        # however if the chaser collides with an obstacle or gets stuck for too long, 
-        # it receives a significant penalty and the episode ends,
         hit_obstacle = self._has_contact_with_any(self.chaser, self.obstacle_body_ids)
         hit_wall = self._has_contact_with_any(self.chaser, self.wall_body_ids)
 
-        # if the chaser is in contact with an obstacle, 
-        # it receives a penalty that increases with the number of consecutive steps in contact,
-        # as well as a penalty for hitting the wall, which encourages the chaser to learn to avoid obstacles
-        # and navigate around them rather than just crashing into them.
-        # this is important for learning effective pursuit behavior in an environment with obstacles,
-        # and ensure PPO is not purely reliant on the reflex to avoid obstacles, but also learns to steer around them proactively.
+        # Collision shaping makes PPO learn proactive avoidance instead of
+        # relying only on the reflex. Obstacle contact starts at -3.0 and grows
+        # by 0.15 per consecutive contact step up to 10 steps; wall contact is
+        # -4.0. Long contact still ends the episode, so crashing is not a valid
+        # shortcut.
         if hit_obstacle:
             info["collision"] = 1.0
             reward -= 3.0 + min(self.obstacle_contact_steps, 10) * 0.15
@@ -970,8 +998,8 @@ class HuskyChaserEnv(gym.Env):
             self.obstacle_contact_steps = max(0, self.obstacle_contact_steps - 1)
 
         # If the chaser is trying to move but barely changes position, it is
-        # probably pinned against an obstacle. Resetting this state helps PPO
-        # learn to avoid the behavior instead of sitting there until timeout.
+        # probably pinned against an obstacle. The penalty grows by -0.05 per
+        # stuck step up to 50 steps, and 80 stuck steps ends the episode.
         if forward_action > 0.4 and chaser_movement < 0.01 and distance > self.catch_distance:
             self.stuck_steps += 1
             reward -= min(self.stuck_steps, 50) * 0.05
@@ -997,15 +1025,14 @@ class HuskyChaserEnv(gym.Env):
                 scale = 0.3 if runner_beyond else 1.1
                 reward -= (2.0 - obs_dist) * scale
  
-            # get the relative position of the obstacle to the chaser, 
-            # and if it's within a certain range in front of the chaser, 
-            # apply a penalty that encourages the chaser to steer around it 
-            # rather than crashing into it.
+            # Extra forward-corridor penalty for obstacles 0-3.6 units ahead
+            # and within +/-1.35 lateral units. This teaches earlier steering,
+            # not just reacting after contact.
             obs_rel_x, obs_rel_y = get_relative_position(chaser_pos, chaser_orn, [obs_pos[0], obs_pos[1], 0.0])
             if 0.0 < obs_rel_x < 3.6 and abs(obs_rel_y) < 1.35:
                 reward -= (3.6 - obs_rel_x) * 0.24
         
-        # Wall penalty
+        # Wall penalty: crossing the 1.0 unit inner margin costs -5.0.
         if abs(chaser_pos[0]) > self.boundary - 1.0 or abs(chaser_pos[1]) > self.boundary - 1.0:
             reward -= 5.0
 
@@ -1019,10 +1046,8 @@ class HuskyChaserEnv(gym.Env):
         terminated = False
         return finish(reward, terminated)
  
-    # This function calculates the distance from the chaser to the 
-    # nearest obstacle, which is used in the reward function to 
-    # encourage the chaser to maintain a safe distance from obstacles 
-    # while pursuing the runner.
+    # Nearest obstacle distance is logged to TensorBoard and used in reward
+    # shaping to measure whether the policy is learning safer paths.
     def _nearest_obstacle_distance(self, xy):
         if not self.obstacle_positions:
             return float(self.boundary)
@@ -1034,9 +1059,7 @@ class HuskyChaserEnv(gym.Env):
             )
         )
 
-    # This function resets the environment to a new random configuration, 
-    # including the positions of the chaser, runner, and obstacles.
-    # It also resets all the internal state variables and returns the initial observation.
+    # Close the PyBullet connection when training/demo code is finished.
     def close(self):
         if p.isConnected():
             p.disconnect()
