@@ -1,0 +1,10 @@
+gymnasium
+pybullet
+stable-baselines3
+opencv-python
+ultralytics
+numpy
+torch
+torchvision
+tensorboard
+matplotlib

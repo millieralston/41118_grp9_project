@@ -2,21 +2,47 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <meta name="description" content="TipBot AI robotics project: simulated Husky bots in PyBullet trained with reinforcement learning.">
-  <meta name="keywords" content="TipBot, robotics, reinforcement learning, Husky, PyBullet, AI model">
+  <meta name="description"
+        content="Autonomous Robot Pursuit via Reinforcement Learning and Computer Vision">
+  <meta name="keywords" content="Nerfies, D-NeRF, NeRF">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>TipBot AI Robotics</title>
+  <title>TipBot: Autonomous Robot Pursuit</title>
 
-  <link href="https://fonts.googleapis.com/css?family=Google+Sans|Noto+Sans|Castoro" rel="stylesheet">
+  <!-- Global site tag (gtag.js) - Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-PYVRSFMDRL"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+
+    function gtag() {
+      dataLayer.push(arguments);
+    }
+
+    gtag('js', new Date());
+
+    gtag('config', 'G-PYVRSFMDRL');
+  </script>
+
+  <link href="https://fonts.googleapis.com/css?family=Google+Sans|Noto+Sans|Castoro"
+        rel="stylesheet">
+
   <link rel="stylesheet" href="./static/css/bulma.min.css">
   <link rel="stylesheet" href="./static/css/bulma-carousel.min.css">
   <link rel="stylesheet" href="./static/css/bulma-slider.min.css">
   <link rel="stylesheet" href="./static/css/fontawesome.all.min.css">
+  <link rel="stylesheet"
+        href="https://cdn.jsdelivr.net/gh/jpswalsh/academicons@1/css/academicons.min.css">
   <link rel="stylesheet" href="./static/css/index.css">
   <link rel="icon" href="./static/images/favicon.svg">
+
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+  <script defer src="./static/js/fontawesome.all.min.js"></script>
+  <script src="./static/js/bulma-carousel.min.js"></script>
+  <script src="./static/js/bulma-slider.min.js"></script>
+  <script src="./static/js/index.js"></script>
 </head>
 <body>
-
+  
+<!-- 
 <nav class="navbar" role="navigation" aria-label="main navigation">
   <div class="navbar-brand">
     <a role="button" class="navbar-burger" aria-label="menu" aria-expanded="false">
@@ -27,99 +53,527 @@
   </div>
   <div class="navbar-menu">
     <div class="navbar-start" style="flex-grow: 1; justify-content: center;">
-      <a class="navbar-item" href="project.html">
-        <span class="icon"><i class="fas fa-folder-open"></i></span>
-        <span>Project</span>
+      <a class="navbar-item" href="https://keunhong.com">
+      <span class="icon">
+          <i class="fas fa-home"></i>
+      </span>
       </a>
-      <a class="navbar-item" href="readme.html">
-        <span class="icon"><i class="fas fa-file-alt"></i></span>
-        <span>README</span>
-      </a>
-      <a class="navbar-item" href="docs/index.html">
-        <span class="icon"><i class="fas fa-book"></i></span>
-        <span>Docs</span>
-      </a>
-    </div>
-  </div>
-</nav>
 
-<section class="hero is-primary">
+      <!-- <div class="navbar-item has-dropdown is-hoverable">
+        <a class="navbar-link">
+          More Research
+        </a>
+        <div class="navbar-dropdown">
+          <a class="navbar-item" href="https://hypernerf.github.io">
+            HyperNeRF
+          </a>
+          <a class="navbar-item" href="https://nerfies.github.io">
+            Nerfies
+          </a>
+          <a class="navbar-item" href="https://latentfusion.github.io">
+            LatentFusion
+          </a>
+          <a class="navbar-item" href="https://photoshape.github.io">
+            PhotoShape
+          </a>
+        </div>
+      </div> -->
+
+    </div>
+
+  </div>
+</nav> -->
+
+
+<section class="hero">
   <div class="hero-body">
-    <div class="container has-text-centered">
-      <h1 class="title is-1">TipBot</h1>
-      <p class="subtitle is-4">Group 9 AI robotics project with PyBullet Husky bots.</p>
-      <p class="subtitle is-6">Melroop, Millie, and Eliza are building a reinforcement learning pursuit system for simulated Husky UGVs.</p>
-      <a class="button is-dark is-large" href="project.html">Explore the TipBot project</a>
-    </div>
-  </div>
-</section>
+    <div class="container is-max-desktop">
+      <div class="columns is-centered">
+        <div class="column has-text-centered">
+          <h1 class="title is-1 publication-title">41118 Group 9: TipBot</h1>
+          <div class="is-size-5 publication-authors">
+            <span class="author-block">
+              <a href="https://au.linkedin.com/in/millie-ralston" target="_blank" rel="noopener noreferrer">Millie Ralston</a><sup>1</sup>,</span>
+            <span class="author-block">
+              <a href="author-block">Eliza Tam</a><sup>1</sup>,</span>
+            <span class="author-block">
+              <a href="author-block">Melroop Nijjar</a><sup>1</sup>,</span>
+            </span>
+          </div>
 
-<section class="section">
-  <div class="container">
-    <h2 class="title is-3">Project summary</h2>
-    <p>TipBot simulates a reinforcement learning system where two Husky robots operate in a PyBullet environment. One robot plays the runner using a scripted policy, while the chaser robot is trained to pursue and intercept the runner while avoiding obstacles.</p>
+          <div class="is-size-5 publication-authors">
+            <span class="author-block"><sup>1</sup>University of Technology Sydney,</span>
+          </div>
 
-    <div class="columns">
-      <div class="column">
-        <h3 class="title is-4">Current progress</h3>
-        <ul>
-          <li>Fully built PyBullet environment with two Husky robots and randomized spawn positions.</li>
-          <li>Random obstacle placement with 12 trees, 5 benches, and a perimeter fence.</li>
-          <li>Runner uses a scripted evasion policy while the chaser is the training agent.</li>
-          <li>Reward function implemented with catch reward, distance shaping, obstacle penalties, and stuck penalties.</li>
-        </ul>
-      </div>
-      <div class="column">
-        <h3 class="title is-4">Training details</h3>
-        <ul>
-          <li>Agent runs in a PyBullet DIRECT mode for fast training.</li>
-          <li>Action space uses continuous linear and angular velocity controls.</li>
-          <li>Observation includes a 64×64×3 RGB camera image from the chaser’s forward-facing view.</li>
-          <li>Training uses Stable Baselines3 PPO with a CNN policy planned for image-based learning.</li>
-        </ul>
-      </div>
-    </div>
-  </div>
-</section>
+          <div class="column has-text-centered">
+            <div class="Video">
+              <!-- Video Link. -->
+              <span class="link-block">
+                <a href="https://www.youtube.com/watch?v=MrKrnHhk8IA"
+                   class="external-link button is-normal is-rounded is-dark">
+                  <span class="icon">
+                      <i class="fab fa-youtube"></i>
+                  </span>
+                  <span>Video</span>
+                </a>
+              </span>
+              <!-- Code Link. -->
+              <span class="link-block">
+                <a href="https://github.com/google/nerfies"
+                   class="external-link button is-normal is-rounded is-dark">
+                  <span class="icon">
+                      <i class="fab fa-github"></i>
+                  </span>
+                  <span>Code</span>
+                  </a>
+              </span>
+              <!-- Dataset Link. -->
+              <span class="link-block">
+                <a href="https://github.com/google/nerfies/releases/tag/0.1"
+                   class="external-link button is-normal is-rounded is-dark">
+                  <span class="icon">
+                      <i class="far fa-images"></i>
+                  </span>
+                  <span>Data</span>
+                  </a>
+            </div>
 
-<section class="section is-light">
-  <div class="container">
-    <h2 class="title is-3">Why TipBot?</h2>
-    <p>The goal is to demonstrate how reinforcement learning, reward design, policy training, and CNN-based visual input can be combined in a robotics setting. Instead of hard-coded obstacle rules, the chaser will learn from raw camera input how to pursue the runner safely and efficiently.</p>
-  </div>
-</section>
-
-<section class="section">
-  <div class="container has-text-centered">
-    <h2 class="title is-3">Next steps</h2>
-    <div class="columns is-multiline">
-      <div class="column is-half">
-        <div class="box">
-          <h3 class="title is-5">Model improvements</h3>
-          <ul>
-            <li>Refine the reward policy to encourage pursuit while avoiding obstacles.</li>
-            <li>Improve runner scripted movement to create a stronger training challenge.</li>
-            <li>Complete the CNN-based policy for camera image input.</li>
-          </ul>
-        </div>
-      </div>
-      <div class="column is-half">
-        <div class="box">
-          <h3 class="title is-5">Training & system</h3>
-          <ul>
-            <li>Use GPU training for CNNs rather than CPU.</li>
-            <li>Improve collision avoidance for both Husky robots.</li>
-            <li>Tune velocities and penalties to prevent tilting and stuck behavior.</li>
-          </ul>
+          </div>
         </div>
       </div>
     </div>
   </div>
 </section>
+
+<!-- <section class="hero teaser">
+  <div class="container is-max-desktop">
+    <div class="hero-body">
+      <video id="teaser" autoplay muted loop playsinline height="100%">
+        <source src="./static/videos/teaser.mp4"
+                type="video/mp4">
+      </video>
+      <h2 class="subtitle has-text-centered">
+        <span class="dnerf">TipBot</span> training of a model in a runner chase system, for optimal variable target tracking.
+      </h2>
+    </div>
+  </div>
+</section> -->
+
+
+<section class="hero is-light">
+  <div class="hero-body">
+    <div class="container is-max-desktop">
+      <div class="columns is-centered">
+        <div class="column has-text-centered">
+          <img src="./static/images/teammember_et.png" alt="Eliza Tam" style="max-height:300px; object-fit:contain;">
+          <p class="title is-5" style="margin-top:0.75rem;">Eliza Tam</p>
+          <p class="subtitle is-6">CNN / Computer Vision</p>
+        </div>
+        <div class="column has-text-centered">
+          <img src="./static/images/teammember_mn.png" alt="Melroop Nijjar" style="max-height:300px; object-fit:contain;">
+          <p class="title is-5" style="margin-top:0.75rem;">Melroop Nijjar</p>
+          <p class="subtitle is-6">MLP / Reinforcement Learning</p>
+        </div>
+        <div class="column has-text-centered">
+          <img src="./static/images/teammember_mr.png" alt="Millie Ralston" style="max-height:300px; object-fit:contain;">
+          <p class="title is-5" style="margin-top:0.75rem;">Millie Ralston</p>
+          <p class="subtitle is-6">Environment, GUI & Portfolio</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<section class="section">
+  <div class="container is-max-desktop">
+    <!-- Abstract. -->
+    <div class="columns is-centered has-text-centered">
+      <div class="column is-four-fifths">
+        <h2 class="title is-3">Abstract</h2>
+        <div class="content has-text-justified">
+          <p>
+            This project presents an autonomous robot pursuit system in which a Husky robot (the chaser) 
+            learns to track and intercept a second scripted Husky robot (the runner) within a bounded 
+            PyBullet physics simulation. The system integrates two complementary approaches: reinforcement 
+            learning for high-level pursuit behaviour, and computer vision for real-time target detection.
+          </p>
+          <p>
+            The chaser is trained using Proximal Policy Optimisation (PPO) via Stable Baselines3, with an
+            MLP policy operating on a compact 8-dimensional observation vector. This vector encodes 
+            the runner's position and the three nearest obstacles in the chaser's local frame, computed 
+            by a dedicated perception module. A shaped reward function incentivises closing distance to 
+            the runner, penalises obstacle and wall collisions, and awards a large terminal bonus of 800 
+            upon successful capture. A reactive obstacle avoidance reflex supplements the learned policy 
+            by blending short-range collision responses directly into the chaser's wheel commands, ensuring 
+            the agent can recover from tight situations that the PPO policy alone may not handle.
+          </p>
+          <p>
+            In parallel, a YOLOv8 object detection model was trained on frames captured from the chaser's 
+            onboard simulated camera, enabling the system to visually identify the runner robot in real time. 
+            During demonstration, the trained PPO agent operates the chaser in a live PyBullet GUI session 
+            while the YOLO stream annotates detected targets on the camera feed.
+          </p>
+          <p>
+            The environment randomises obstacle placement, starting positions, and runner heading each 
+            episode, promoting generalisation. Results demonstrate that the chaser successfully intercepts 
+            the actively-evading runner across diverse configurations, validating the effectiveness of 
+            combining learned pursuit policies with vision-based perception in a simulated autonomous robotics 
+            context.
+          </p>
+        </div>
+      </div>
+    </div>
+    <!--/ Abstract. -->
+
+    <!-- Paper video. -->
+    <div class="columns is-centered has-text-centered">
+      <div class="column is-four-fifths">
+        <h2 class="title is-3">Video</h2>
+        <div class="publication-video">
+          <iframe src="https://www.youtube.com/embed/MrKrnHhk8IA?rel=0&amp;showinfo=0"
+                  frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>
+        </div>
+      </div>
+    </div>
+    <!--/ Paper video. -->
+  </div>
+</section>
+
+
+<section class="section">
+  <div class="container is-max-desktop">
+
+    <div class="columns is-centered">
+
+      <!-- Reinforcement Learning. -->
+      <div class="column">
+        <div class="content">
+          <h2 class="title is-3">Reinforcement Learning</h2>
+          <p>
+            The chaser is trained using Proximal Policy Optimisation (PPO) via Stable Baselines3, with an
+            MLP policy operating on a compact 8-dimensional observation vector. This vector encodes
+            the runner's position and the three nearest obstacles in the chaser's local frame, computed
+            by a dedicated perception module. A shaped reward function incentivises closing distance to
+            the runner, penalises obstacle and wall collisions, and awards a large terminal bonus of 800
+            upon successful capture. A reactive obstacle avoidance reflex supplements the learned policy
+            by blending short-range collision responses directly into the chaser's wheel commands, ensuring
+            the agent can recover from tight situations that the PPO policy alone may not handle.
+          </p>
+          <p>
+            MLP policy architecture and hyperparameters were selected based on preliminary experiments,
+            with a network of 2 hidden layers and 64 neurons per layer providing a good balance of learning
+            capacity and training stability. The reward function was carefully shaped to encourage pursuit
+            behaviour while discouraging unsafe actions, with the terminal capture bonus significantly
+            outweighing intermediate rewards to prioritise successful interception. The obstacle avoidance
+            reflex was implemented as a simple proportional controller that generates wheel commands to steer
+            away from detected obstacles within a short range, and was blended with the PPO policy outputs
+            using a weighted sum to allow the learned policy to focus on pursuit strategy while relying on
+            the reflex for immediate collision avoidance. Training was conducted over 100,000 timesteps,
+            with the agent achieving a capture success rate of over 90% in evaluation episodes after convergence.
+          </p>
+        </div>
+      </div>
+      <!--/ Reinforcement Learning. -->
+
+      <!-- YOLO/CNN. -->
+      <div class="column">
+        <div class="content">
+          <h2 class="title is-3">YOLO/CNN</h2>
+          <p>
+            The visual detection component uses YOLOv8, a convolutional neural network architecture,
+            trained entirely on synthetic data generated from within the PyBullet simulation.
+            A dedicated dataset collection script rendered 3,500 frames from the chaser robot's
+            simulated onboard camera, a 60° FOV perspective at 640×480 resolution across randomised
+            episode resets, capturing the runner robot at a wide distribution of distances (1–16 metres)
+            and lateral offsets. Ground-truth bounding boxes were derived automatically from PyBullet's
+            pixel-level segmentation mask rather than manual annotation: each frame's segmentation
+            buffer was queried for pixels belonging to the runner's body ID, and the resulting mask
+            was converted directly to YOLO-format normalised bounding box coordinates (class, x_center,
+            y_center, width, height). A two-stage quality filter rejected ambiguous samples, discarding
+            any detection with fewer than 200 visible runner pixels or a visibility ratio below 0.5 (i.e.
+            where occlusion made the bounding box unreliable), before labels were written to disk. The
+            dataset was split into training and validation sets and fine-tuned over 50 epochs with early
+            stopping (patience of 20), building on a previously trained checkpoint to progressively improve
+            detection accuracy. At inference time during the demo, the trained model runs on live camera
+            frames from the simulation and annotates detected runner instances in real time, demonstrating
+            a full sim-to-model visual perception pipeline.
+          </p>
+          <div class="has-text-centered" style="margin-top:1rem;">
+            <img src="./static/images/cnn1.webp" alt="CNN visualization" style="max-width:100%; height:auto; max-height:360px;" />
+            <p class="is-size-7" style="margin-top:0.5rem;">CNN feature map / detection example</p>
+          </div>
+        </div>
+      </div>
+      <!--/ YOLO/CNN. -->
+
+    </div>
+
+    <!-- Animation. -->
+    <div class="columns is-centered">
+      <div class="column is-full-width">
+        <h2 class="title is-3">Animation</h2>
+
+        <!-- Interpolating. -->
+        <h3 class="title is-4">Interpolating states</h3>
+        <div class="content has-text-justified">
+          <p>
+            We can also animate the scene by interpolating the deformation latent codes of two input
+            frames. Use the slider here to linearly interpolate between the left frame and the right
+            frame.
+          </p>
+        </div>
+        <div class="columns is-vcentered interpolation-panel">
+          <div class="column is-3 has-text-centered">
+            <img src="./static/images/interpolate_start.jpg"
+                 class="interpolation-image"
+                 alt="Interpolate start reference image."/>
+            <p>Start Frame</p>
+          </div>
+          <div class="column interpolation-video-column">
+            <div id="interpolation-image-wrapper">
+              Loading...
+            </div>
+            <input class="slider is-fullwidth is-large is-info"
+                   id="interpolation-slider"
+                   step="1" min="0" max="100" value="0" type="range">
+          </div>
+          <div class="column is-3 has-text-centered">
+            <img src="./static/images/interpolate_end.jpg"
+                 class="interpolation-image"
+                 alt="Interpolation end reference image."/>
+            <p class="is-bold">End Frame</p>
+          </div>
+        </div>
+        <br/>
+        <!--/ Interpolating. -->
+
+        <!-- Re-rendering. -->
+        <h3 class="title is-4">Re-rendering the input video</h3>
+        <div class="content has-text-justified">
+          <p>
+            Using <span class="dnerf">Nerfies</span>, you can re-render a video from a novel
+            viewpoint such as a stabilized camera by playing back the training deformations.
+          </p>
+        </div>
+        <div class="content has-text-centered">
+          <video id="replay-video"
+                 controls
+                 muted
+                 preload
+                 playsinline
+                 width="75%">
+            <source src="./static/videos/replay.mp4"
+                    type="video/mp4">
+          </video>
+        </div>
+        <!--/ Re-rendering. -->
+
+      </div>
+    </div>
+    <!--/ Animation. -->
+
+
+    <!-- Results -->
+    <div class="columns is-centered">
+      <div class="column is-full-width">
+        <h2 class="title is-3">Results</h2>
+
+        <div class="content has-text-justified">
+          <p>
+            See the video excerpt below for a demo of the Husky chase intercepting the runner based on just our 
+            MLP policy.
+          </p>
+          <div class="content has-text-centered">
+            <video id="demo-run-video"
+                   controls
+                   muted
+                   preload
+                   playsinline
+                   width="100%">
+              <source src="./static/videos/demo_run_no_yolo_h264.mp4"
+                      type="video/mp4">
+            </video>
+            <p class="is-size-7" style="margin-top:0.5rem;">Demo: MLP-only chaser behavior (no YOLO annotations)</p>
+            <p class="is-size-7"><a href="./static/videos/demo_run_no_yolo_h264.mp4" download>Download MP4</a> if video won't play</p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!--/ Results. -->
+
+    <!-- Discussion -->
+    <div class="columns is-centered">
+      <div class="column is-full-width">
+        <h2 class="title is-3">Discussion</h2>
+
+        <div class="content has-text-justified">
+          <h3 class="title is-4">Overview of Approach</h3>
+          <p>
+            This project combines two complementary learning systems: a convolutional
+            neural network-based visual detector to estimate the runner's position from
+            raw camera images, and a reinforcement learning (PPO) agent that converts
+            perceived information into continuous wheel commands to pursue and intercept
+            the runner in a cluttered simulated environment.
+          </p>
+
+          <h3 class="title is-4">YOLO / CNN Perception Pipeline</h3>
+          <p>
+            We implemented an automated visual perception pipeline using a YOLO detector
+            trained on synthetic frames rendered from the chaser's onboard simulated camera.
+            The detector runs during demonstrations to annotate bounding boxes on live frames
+            and to provide target estimates for downstream processing.
+          </p>
+
+          <h4 class="title is-5">Dataset collection and preparation</h4>
+          <p>
+            A custom collection script captured approximately 3,500 frames from the
+            simulation, saving RGB images alongside pixel-level segmentation masks from
+            PyBullet. Ground-truth runner bounding boxes were extracted from segmentation
+            masks and converted to YOLO-format labels. To improve label quality we filtered
+            out ambiguous frames (for example, those containing only wheel pixels or where
+            the runner was heavily occluded), ensuring the training set better represented
+            true runner appearances across varied distances and lateral offsets.
+          </p>
+
+          <h4 class="title is-5">Model training and inference</h4>
+          <p>
+            The YOLO model was fine-tuned on the collected dataset (50 epochs with early
+            stopping). During demo runs the trained detector processes live camera frames
+            to produce bounding boxes; these are post-processed to estimate the runner's
+            position in the chaser's local frame when required. This design enforces the
+            project constraint that the agent must estimate target position from vision
+            rather than being given it directly in the observation space.
+          </p>
+
+          <h3 class="title is-4">Integration with the RL Policy</h3>
+          <p>
+            The perception outputs are consumed by the agent pipeline rather than being
+            supplied as privileged ground-truth. In the current demo the YOLO stream runs
+            in parallel with the PPO agent: detection results are visualised live, and
+            converted coordinates can be used to replace or augment the compact observation
+            vector produced by the perception module. This separation allows the RL training
+            loop to remain focused on control while preserving an end-to-end perception
+            pathway for later experiments.
+          </p>
+
+          <h3 class="title is-4">Reinforcement Learning Training Summary</h3>
+          <p>
+            Training uses Proximal Policy Optimisation (PPO) from Stable Baselines3 with
+            an MLP policy on a compact observation vector (runner position + nearest
+            obstacle features). Episodes randomise obstacle placement and spawns to improve
+            generalisation. The reward function combines progress-to-runner, close-range
+            amplification, stability penalties (roll/pitch), and collision penalties, with
+            a large terminal capture bonus to prioritise successful interceptions.
+          </p>
+          <p>
+            For practical training on desktop hardware the environment runs in DIRECT mode,
+            training with single-environment vectorisation due to PyBullet's global API.
+            Checkpointing and a preview-frame callback are used for monitoring, and the
+            training loop supports resuming from saved models to iteratively improve policies.
+          </p>
+
+        </div>
+      </div>
+    </div>
+    <!--/ Discussion. -->
+
+    <!-- Reflection -->
+    <div class="columns is-centered">
+      <div class="column is-full-width">
+        <h2 class="title is-3">Reflection</h2>
+
+        <div class="content has-text-justified">
+          <p>
+            This project was a rewarding exploration of integrating reinforcement learning
+            and computer vision for autonomous robotic pursuit. The PPO agent successfully
+            learned to chase and intercept the runner across diverse scenarios, while the
+            YOLO-based perception pipeline provided real-time visual detection capabilities.
+
+            We encountered many challenges with tuning our logic to result in a successful policy
+            and a robust perception model, but the final system demonstrates the potential of
+            combining learned control policies with vision-based perception in a simulated robotics context.
+          </p>
+          <h3 class="title is-4">Millie Ralston</h3>
+          <p>
+            As the person who worked on our environment settup, GUI and portfolio, I found this project to 
+            be a great opportunity to apply my knowledge of Python and PyBullet in a practical context. 
+            The main challenge I had in participating in this as a group project was that because my fellow 
+            team members were leading the charge on MLP and CNN development it was hard for me to find space to
+            meaningfully contribute. And as the portfolio was inexplicably dependent on the completion of their 
+            work, it was hard for me to contribute effectively until the last stage of integration. The way we 
+            chose to integrate the policies with each other meant that our final results were not seen to quite last
+            minute, and I would have liked to have had more time to work on the GUI and portfolio, but I am proud 
+            of the work we did and the final result we achieved.
+          </p>
+          <p>
+            I am not sure how we could have better collaborated on this coding project, perhaps using more
+            of a back and forth approach in pushing code to the repository and integrating it as we went, 
+            rather than waiting for the final stages to integrate everything together, and for other group members
+            to see code worked on locally sooner. I think this would have allowed us to see the results of our 
+            work sooner and iterate on it more effectively.
+          </p>
+        </div>
+      </div>
+    </div>
+    <!--/ Reflection. -->
+
+  </div>
+</section>
+
+
+
+
+<section class="section" id="BibTeX">
+    <div class="container is-max-desktop content">
+    <h2 class="title">BibTeX</h2>
+    <pre><code>@misc{TipBot2026,
+  author    = {Melroop Nijjar, Millie Ralston and Eliza Tam},
+  title     = {TipBot: Reinforcement Learning for Robotic Target Interception},
+  year      = {2026},
+}</code></pre>
+  </div>
+
+  <div class="container is-max-desktop content">
+    <pre><code>@article{park2021nerfies,
+  author    = {Park, Keunhong and Sinha, Utkarsh and Barron, Jonathan T. and Bouaziz, Sofien and Goldman, Dan B and Seitz, Steven M. and Martin-Brualla, Ricardo},
+  title     = {Nerfies: Deformable Neural Radiance Fields},
+  journal   = {ICCV},
+  year      = {2021},
+}</code></pre>
+  </div>
+</section>
+
 
 <footer class="footer">
-  <div class="container has-text-centered">
-    <p>TipBot project by Group 9: Melroop, Millie, and Eliza.</p>
+  <div class="container">
+    <div class="content has-text-centered">
+      <a class="icon-link"
+         href="./static/videos/nerfies_paper.pdf">
+        <i class="fas fa-file-pdf"></i>
+      </a>
+      <a class="icon-link" href="https://github.com/keunhong" class="external-link" disabled>
+        <i class="fab fa-github"></i>
+      </a>
+    </div>
+    <div class="columns is-centered">
+      <div class="column is-8">
+        <div class="content">
+          <p>
+            This website is licensed under a <a rel="license"
+                                                href="http://creativecommons.org/licenses/by-sa/4.0/">Creative
+            Commons Attribution-ShareAlike 4.0 International License</a>.
+          </p>
+          <p>
+            This means you are free to borrow the <a
+              href="https://github.com/nerfies/nerfies.github.io">source code</a> of this website,
+            we just ask that you link back to this page in the footer.
+            Please remember to remove the analytics code included in the header of the website which
+            you do not want on your website.
+          </p>
+        </div>
+      </div>
+    </div>
   </div>
 </footer>
 
