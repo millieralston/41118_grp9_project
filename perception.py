@@ -55,8 +55,10 @@ def get_observation(env):
     while len(env.obstacle_text_ids) < len(closest_obstacles):
         env.obstacle_text_ids.append(-1)
 
-    if debug:
-        for i, (_, obs_x, obs_y, obs_world_pos) in enumerate(closest_obstacles):
+    # added debug visualization of the closest obstacles relative to the chaser, 
+    # which can help understand what the agent is perceiving and how it relates to its actions.
+    for i, (_, obs_x, obs_y, obs_world_pos) in enumerate(closest_obstacles):
+        if debug:
             # print(f"Obs pos: ({obs_x:.2f}, {obs_y:.2f})")
             env.obstacle_line_ids[i] = p.addUserDebugLine(
                 chaser_pos,
@@ -72,7 +74,7 @@ def get_observation(env):
                 replaceItemUniqueId=env.obstacle_text_ids[i]
             )
 
-            observation.extend([obs_x, obs_y])
+        observation.extend([obs_x, obs_y]) # relative position of the obstacle to the chaser, which is crucial for the agent to learn how to navigate around obstacles while pursuing the runner.
 
     while len(observation) < 8:
         observation.extend([0.0, 0.0])
