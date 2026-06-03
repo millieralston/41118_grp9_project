@@ -118,3 +118,40 @@ def get_closest_obstacles(env, max_obstacles=3):
     obstacle_data.sort(key=lambda x: x[0])
 
     return obstacle_data[:max_obstacles]
+
+def get_yolo_runner(env):
+    """Returns the runner position estimate used by the YOLO demo overlay."""
+    if getattr(env, "yolo_model", None) is None:
+        return env._relative_runner_position()
+
+    if getattr(env, "yolo_step_counter", 0) % getattr(env, "yolo_skip", 1) == 0:
+        try:
+            image = env.get_camera_image_yolo()
+            result = env.yolo_model(image, verbose=False)[0]
+            boxes = result.boxes
+
+            if boxes is not None and len(boxes) > 0:
+                best_idx = int(np.argmax(boxes.conf.cpu().numpy()))
+                xyxy = boxes.xyxy[best_idx].cpu().numpy()
+                center_x = float((xyxy[0] + xyxy[2]) * 0.5)
+                center_y = float((xyxy[1] + xyxy[3]) * 0.5)
+                width = max(float(image.shape[1]), 1.0)
+                height = max(float(image.shape[0]), 1.0)
+                env.yolo_cache = np.array(
+                    [
+                        (center_x / width - 0.5) * 2.0,
+                        (center_y / height - 0.5) * 2.0,
+                    ],
+                    dtype=np.float32,
+                )
+                env.runner_visible = True
+                env.runner_confidence = float(boxes.conf[best_idx].item())
+            else:
+                env.runner_visible = False
+                env.runner_confidence = 0.0
+        except Exception:
+            env.runner_visible = False
+            env.runner_confidence = 0.0
+
+    env.yolo_step_counter = getattr(env, "yolo_step_counter", 0) + 1
+    return float(env.yolo_cache[0]), float(env.yolo_cache[1])

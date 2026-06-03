@@ -239,11 +239,10 @@ def main():
         name_prefix="husky_chaser_ppo",
     )
     task_metrics_callback = TaskMetricsCallback()
-    callbacks = CallbackList([checkpoint_callback, task_metrics_callback])
 
     base_env = vec_env.venv.envs[0]
     preview_callback = PreviewCallback(base_env, freq=256)
-    callback = CallbackList([checkpoint_callback, preview_callback])
+    callback = CallbackList([checkpoint_callback, task_metrics_callback, preview_callback])
 
     # Old eval callback kept for reference. We can add this back later with a separate eval env.
     # eval_callback = EvalCallback(

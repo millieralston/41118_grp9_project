@@ -6,7 +6,7 @@ import numpy as np
 
 from perception import get_relative_position
 
-env = HuskyChaserEnv(render_mode="gui")
+env = HuskyChaserEnv(render_mode="gui", runner_spawn_mode="front")
 
 IMG_DIR = "dataset/images"
 LBL_DIR = "dataset/labels"

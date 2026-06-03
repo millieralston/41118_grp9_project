@@ -384,6 +384,12 @@
             See the video excerpt below for a demo of the Husky chase intercepting the runner based on just our 
             MLP policy.
           </p>
+          <p>
+            Because each episode randomises start positions, obstacle layouts, and runner motion, TensorBoard 
+            metrics are noisy and should be treated as indicative trends rather than a single success criterion. 
+            We therefore pair the TensorBoard data with qualitative demo footage and secondary metrics such 
+            as <code>ep_len_mean</code>, collision counts, capture rate, and distance-to-runner behavior.
+          </p>
           <div class="content has-text-centered">
             <video id="demo-run-video"
                    controls

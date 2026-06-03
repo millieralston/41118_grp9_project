@@ -5,7 +5,7 @@ from husky_chaser_env import HuskyChaserEnv
 
 model = YOLO("runs/detect/yolo_training/runner_detector_v1/weights/best.pt")
 
-env = HuskyChaserEnv(render_mode="gui")
+env = HuskyChaserEnv(render_mode="gui", runner_spawn_mode="front")
 obs, _ = env.reset()
 
 while True:
