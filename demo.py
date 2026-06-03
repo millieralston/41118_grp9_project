@@ -14,7 +14,7 @@ except Exception:
     YOLO = None
 import cv2
 import numpy as np
-from perception import get_yolo_runner
+from perception_yolo import get_yolo_runner
 
 def run_demo(model_path="husky_chaser_ppo_final", num_episodes=5, steps_per_episode=1000, record=False, out_path=None):
     """
@@ -29,7 +29,7 @@ def run_demo(model_path="husky_chaser_ppo_final", num_episodes=5, steps_per_epis
     yolo_model = None
     if YOLO is not None:
         try:
-            yolo_model = YOLO("runs/detect/yolo_training/runner_detector_v2/weights/best.pt")
+            yolo_model = YOLO("runs/detect/yolo_training/runner_detector_v2/weights/best.pt", verbose=False)
         except Exception:
             print("Warning: YOLO weights not found or failed to load; running demo without YOLO annotations.")
             yolo_model = None
@@ -70,17 +70,19 @@ def run_demo(model_path="husky_chaser_ppo_final", num_episodes=5, steps_per_epis
                 episode_reward += reward
                 
                 # --- YOLO perception stream (optional) ---
-                cam_img = env.get_camera_image_yolo()
+                cam_img = cv2.cvtColor(env.get_camera_image_yolo(), cv2.COLOR_RGB2BGR)
                 annotated = None
-                if yolo_model is not None and step % 2 == 0:
+                if yolo_model is not None:
                     try:
-                        results = yolo_model(cam_img)[0]
+                        results = yolo_model(cam_img, verbose=False)[0]
                         annotated = results.plot()
+                        annotated = cv2.cvtColor(annotated, cv2.COLOR_RGB2BGR)
+
                     except Exception:
                         annotated = None
 
                 if annotated is None:
-                    # Fallback: show raw camera image if YOLO not available
+                    # Fallback: use raw camera image if YOLO is unavailable
                     try:
                         annotated = cv2.cvtColor(cam_img, cv2.COLOR_RGB2BGR)
                     except Exception:
@@ -101,14 +103,11 @@ def run_demo(model_path="husky_chaser_ppo_final", num_episodes=5, steps_per_epis
                 # make it easier to see
                 annotated = cv2.resize(annotated, (960, 720))
 
-                cv2.imshow("YOLO View (Demo)", annotated)
-                cv2.waitKey(1)
-
+                # Do not display the live feed window; only write to recording if requested
                 if writer is not None:
-                    # Write BGR frame (annotated from Ultralytics is display-ready)
                     writer.write(annotated)
-                
-                # Small delay for visual clarity
+
+                # Small delay for simulation pacing
                 time.sleep(0.01)
                 
                 if terminated or truncated:
