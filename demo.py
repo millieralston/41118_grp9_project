@@ -82,7 +82,7 @@ def run_demo(model_path="husky_chaser_ppo_final", num_episodes=5, steps_per_epis
                         annotated = None
 
                 if annotated is None:
-                    # Fallback: show raw camera image if YOLO not available
+                    # Fallback: use raw camera image if YOLO is unavailable
                     try:
                         annotated = cv2.cvtColor(cam_img, cv2.COLOR_RGB2BGR)
                     except Exception:
@@ -103,14 +103,11 @@ def run_demo(model_path="husky_chaser_ppo_final", num_episodes=5, steps_per_epis
                 # make it easier to see
                 annotated = cv2.resize(annotated, (960, 720))
 
-                cv2.imshow("YOLO View (Demo)", annotated)
-                cv2.waitKey(1)
-
+                # Do not display the live feed window; only write to recording if requested
                 if writer is not None:
-                    # Write BGR frame (annotated from Ultralytics is display-ready)
                     writer.write(annotated)
-                
-                # Small delay for visual clarity
+
+                # Small delay for simulation pacing
                 time.sleep(0.01)
                 
                 if terminated or truncated:
