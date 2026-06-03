@@ -2,12 +2,21 @@ import random
 import shutil
 from pathlib import Path
 
+"""
+Dataset splitting utility for YOLO training.
+
+This script prepares the generated dataset for training by randomly
+partitioning images and labels into training and validation subsets.
+Image-label pairs are copied into the directory structure expected by
+Ultralytics YOLO, ensuring reproducible dataset splits through a fixed
+random seed.
+"""
+
 # --------------------------
 # Settings
 # --------------------------
 
 SEED = 42
-
 TRAIN_RATIO = 0.8
 VAL_RATIO = 0.2
 

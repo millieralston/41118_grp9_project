@@ -3,6 +3,18 @@ import random
 import cv2
 import os
 
+"""
+Dataset visualisation and annotation sanity-check tool.
+
+This script randomly samples images from the generated YOLO dataset
+and overlays ground-truth bounding boxes from label files. It is used
+to verify dataset quality, confirm correct label formatting, and
+inspect the effectiveness of the automatic annotation pipeline.
+
+The tool helps identify labeling errors or poor-quality samples before
+model training.
+"""
+
 IMG_DIR = "dataset/images"
 LBL_DIR = "dataset/labels"
 

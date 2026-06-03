@@ -1,11 +1,23 @@
 from ultralytics import YOLO
 
+"""
+YOLO training script for runner detection.
+
+This script fine-tunes a pre-trained YOLOv11n model on the custom
+synthetic dataset generated from the PyBullet simulation. It configures
+training parameters such as image size, batch size, number of epochs,
+and early stopping to optimise detection performance.
+
+The resulting model is saved under the specified project directory for
+later evaluation and deployment.
+"""
+
 def main():
-    model = YOLO("runs/detect/yolo_training/runner_detector_v1/weights/best.pt")
+    model = YOLO("yolo11n.pt")
 
     model.train(
         data="dataset.yaml",
-        epochs=50,
+        epochs=100,
         imgsz=640,
         batch=16,
         patience=20,

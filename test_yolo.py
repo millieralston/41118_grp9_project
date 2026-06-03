@@ -4,6 +4,20 @@ from ultralytics import YOLO
 import cv2
 import glob
 
+"""
+YOLO evaluation and visualisation script.
+
+This script evaluates a trained YOLO model on the validation dataset
+and visualises prediction performance. It first computes validation
+metrics (e.g., precision, recall, and mAP), then runs inference on
+validation images and overlays predicted bounding boxes and confidence
+scores.
+
+The tool is used for quantitative and qualitative assessment of detection performance
+and to verify that the trained model generalises correctly to unseen
+simulation frames.
+"""
+
 IMG_DIR = "dataset/images/val"
 
 model = YOLO("runs/detect/yolo_training/runner_detector_v2/weights/best.pt")
