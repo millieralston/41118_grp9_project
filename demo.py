@@ -103,6 +103,9 @@ def run_demo(model_path="husky_chaser_ppo_final", num_episodes=5, steps_per_epis
                 # make it easier to see
                 annotated = cv2.resize(annotated, (960, 720))
 
+                cv2.imshow("YOLO Demo", annotated)
+                cv2.waitKey(1)
+
                 # Do not display the live feed window; only write to recording if requested
                 if writer is not None:
                     writer.write(annotated)
