@@ -11,8 +11,9 @@ import time
 from ultralytics import YOLO
 import cv2
 import numpy as np
+from perception import get_yolo_runner
 
-def run_demo(model_path="husky_chaser_ppo_final", num_episodes=5, steps_per_episode=1000):
+def run_demo(model_path="husky_chaser_ppo_v2", num_episodes=5, steps_per_episode=1000):
     """
     Run trained model in visual mode.
     
@@ -21,8 +22,6 @@ def run_demo(model_path="husky_chaser_ppo_final", num_episodes=5, steps_per_epis
         num_episodes: Number of episodes to run
         steps_per_episode: Max steps per episode
     """
-    # Load the trained YOLO model
-    yolo_model = YOLO("runs/detect/yolo_training/runner_detector_v2/weights/best.pt")
 
     print(f"Loading model from {model_path}...")
     try:
@@ -51,10 +50,24 @@ def run_demo(model_path="husky_chaser_ppo_final", num_episodes=5, steps_per_epis
                 # --- YOLO perception stream ---
                 cam_img = env.get_camera_image_yolo()
 
-                if step % 2 == 0:
-                    results = yolo_model(cam_img)[0]
-                
+                # if step % 2 == 0:
+                #     results = env.yolo_model(cam_img)[0]
+
+                results = env.yolo_model(cam_img)[0]
+
                 annotated = results.plot()
+
+                runner_x, runner_y = get_yolo_runner(env)
+
+                cv2.putText(
+                    annotated,
+                    f"x={runner_x:.2f}",
+                    (20, 40),
+                    cv2.FONT_HERSHEY_SIMPLEX,
+                    1,
+                    (0, 255, 0),
+                    2
+                )
 
                 # make it easier to see
                 annotated = cv2.resize(annotated, (960, 720))

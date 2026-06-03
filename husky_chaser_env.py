@@ -8,6 +8,7 @@ import numpy as np
 import time
 import random
 import sys
+from ultralytics import YOLO
 from perception import create_observation_space, get_observation, get_relative_position
 
 
@@ -102,6 +103,16 @@ class HuskyChaserEnv(gym.Env):
         self.obstacle_line_ids = []
         self.obstacle_text_ids = []
 
+        # load YOLO model
+        self.yolo_model = YOLO("runs/detect/yolo_training/runner_detector_v2/weights/best.pt", verbose=False)
+
+        self.last_runner_xy = np.array([0.0, 0.0], dtype=np.float32)
+        self.runner_visible = False
+
+        self.yolo_cache = np.zeros(2, dtype=np.float32)
+        self.yolo_step_counter = 0
+        self.yolo_skip = 2  # run YOLO every 2 steps (start small)
+
         # Handle GUI vs DIRECT mode
         if self.render_mode == "gui":
             self.physics_client = p.connect(p.GUI)
@@ -138,6 +149,11 @@ class HuskyChaserEnv(gym.Env):
         self.escape_steps = 0
         self.escape_turn_direction = 1.0
         self.current_wheel_targets = {}
+
+        # initialising runner visibility and confidence for observation space
+        self.runner_visible = False
+        self.runner_confidence = 0.0
+        self.last_runner_xy = np.array([0.0, 0.0], dtype=np.float32)
         
         plane_id = p.loadURDF("plane.urdf")
         p.changeDynamics(
