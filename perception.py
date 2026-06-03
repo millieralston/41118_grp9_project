@@ -3,6 +3,19 @@ from gymnasium import spaces
 import numpy as np
 import pybullet as p
 
+"""
+Perception module for the PPO training environment.
+
+This module constructs the agent's observation space using simulator
+ground-truth information. It computes the relative position of the runner
+and the three closest obstacles with respect to the chaser, returning an
+8-dimensional observation vector used by the reinforcement learning policy.
+
+The module also provides optional PyBullet debug visualisation and includes
+a YOLO-based runner detection function used for demonstration and
+visualisation purposes.
+"""
+
 # describes the observation space format (a vector with 8 floating point values)
 def create_observation_space():
     # observation space vector layout
@@ -42,9 +55,6 @@ def get_observation(env):
 
     runner_x, runner_y = get_relative_position(chaser_pos, chaser_orn, runner_pos)
 
-    # if debug:
-    #     print(f"Runner pos: ({runner_x:.2f}, {runner_y:.2f}) | ")
-
     observation.extend([runner_x, runner_y])
 
     closest_obstacles = get_closest_obstacles(env)
@@ -59,7 +69,6 @@ def get_observation(env):
     # which can help understand what the agent is perceiving and how it relates to its actions.
     for i, (_, obs_x, obs_y, obs_world_pos) in enumerate(closest_obstacles):
         if debug:
-            # print(f"Obs pos: ({obs_x:.2f}, {obs_y:.2f})")
             env.obstacle_line_ids[i] = p.addUserDebugLine(
                 chaser_pos,
                 obs_world_pos,

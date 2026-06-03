@@ -4,26 +4,28 @@ import os
 import pybullet as p
 import numpy as np
 
-from perception import get_relative_position
+"""
+YOLO dataset generation script.
+
+This script automatically generates a labelled object detection dataset
+from the PyBullet simulation environment. RGB images are captured from the
+chaser's onboard camera while segmentation masks are used to identify the
+runner and generate ground-truth bounding boxes in YOLO format.
+
+To improve dataset quality, images containing heavily occluded or
+insufficiently visible runners are filtered and rejected. Accepted images
+and labels are saved for use in YOLO training.
+"""
 
 env = HuskyChaserEnv(render_mode="gui", runner_spawn_mode="front")
 
 IMG_DIR = "dataset/images"
 LBL_DIR = "dataset/labels"
-SEG_DIR = "dataset/seg_images"
 REJECT_DIR = "dataset/rejected"
-
-EDGE_IMG_DIR = "dataset/edge_case/images"
-EDGE_LBL_DIR = "dataset/edge_case/labels"
 
 os.makedirs(IMG_DIR, exist_ok=True)
 os.makedirs(LBL_DIR, exist_ok=True)
-
-os.makedirs(SEG_DIR, exist_ok=True)
 os.makedirs(REJECT_DIR, exist_ok=True)
-
-os.makedirs(EDGE_IMG_DIR, exist_ok=True)
-os.makedirs(EDGE_LBL_DIR, exist_ok=True)
 
 # collects relevant data from the camera image used to train yolo
 def get_camera(env, width=640, height=480):
@@ -51,9 +53,6 @@ def get_camera(env, width=640, height=480):
         flags = (p.ER_SEGMENTATION_MASK_OBJECT_AND_LINKINDEX),
         renderer=p.ER_BULLET_HARDWARE_OPENGL
     )
-
-    # print("Unique seg IDs:", np.unique(seg))
-    # print("Runner ID in seg?:", env.runner in np.unique(seg))
 
     rgb = np.reshape(rgb, (height, width, 4))[:, :, :3]
     seg = np.reshape(seg, (height, width))
@@ -102,8 +101,6 @@ def get_runner_seg_ids(env, seg):
     if not np.any(runner_mask):
        print("Runner not visible in segmentation image.")
 
-    # print(f"Runner pixels found: {np.count_nonzero(runner_mask)}")
-
     return runner_mask
 
 if __name__ == "__main__":
@@ -122,73 +119,20 @@ if __name__ == "__main__":
 
         dist = np.linalg.norm(np.array(runner_pos[:2]) - np.array(chaser_pos[:2]))
 
-        # is_edge_case = dist < 4.0 or dist > 14.0
-
-        # if dist < 3.0:
-        #     continue  # reject sample, try again
-
         # get camera data
         rgb, seg = get_camera(env)
-
-        # DEBUGGING PRINT STATEMENTS
-        # rx, ry = get_relative_position(
-        #     chaser_pos,
-        #     chaser_orn,
-        #     runner_pos
-        # )
-
-        # print("Runner pos:", runner_pos)
-        # print("Chaser pos:", chaser_pos)
-        # print(f"Runner relative position: ({rx:.2f}, {ry:.2f})")
-
-        # print("Unique seg IDs:", np.unique(seg))
-
-        # for sid in np.unique(seg):
-        #     if sid < 0:
-        #         continue
-
-        #     object_id = sid & ((1 << 24) - 1)
-        #     link_index = (sid >> 24) - 1
-
-        #     print(
-        #         f"seg={sid}, object={object_id}, link={link_index}"
-        #     )
 
         runner_mask = get_runner_seg_ids(env, seg)
 
         print("Runner pixels:", np.count_nonzero(runner_mask))
-
-        # print(f"[{i}] Runner body ID:", env.runner)
 
         object_ids = seg & ((1 << 24) - 1)
 
         print("Runner hit:", np.any(object_ids == env.runner))
 
         # save rgb image
-        # if is_edge_case:
-        #     img_path = f"{EDGE_IMG_DIR}/{saved}.png"
-        # else:
-        #     img_path = f"{IMG_DIR}/{saved}.png"
-
         img_path = f"{IMG_DIR}/{saved}.png"
         cv2.imwrite(img_path, cv2.cvtColor(rgb, cv2.COLOR_RGB2BGR))
-
-        # # save segmentation image for debugging
-        # seg_vis = (seg.astype(np.float32) - seg.min())
-        # seg_vis /= seg_vis.max() + 1e-6
-        # seg_vis = (seg_vis * 255).astype(np.uint8)
-
-        # seg_path = f"{SEG_DIR}/{saved}.png"
-        # cv2.imwrite(seg_path, seg_vis)
-
-        # # obstacles still use segmentation IDs - removing for now as we're focusing on runner detection, but we can add back later if needed
-        # object_id_map = {}
-
-        # for obs_id in env.obstacle_body_ids:
-        #     object_id_map[obs_id] = 1
-
-        # # save labels in yolo format (class_id, x_center, y_center, width, height)
-        # labels = seg_to_bboxes(seg, object_id_map)
 
         ys, xs = np.where(runner_mask)
 
