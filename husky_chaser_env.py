@@ -8,7 +8,10 @@ import numpy as np
 import time
 import random
 import sys
-from ultralytics import YOLO
+try:
+    from ultralytics import YOLO
+except Exception:
+    YOLO = None
 from perception import create_observation_space, get_observation, get_relative_position
 
 # this is to suppress the noisy URDF importer warnings while keeping normal training logs visible.
@@ -41,7 +44,7 @@ def suppress_pybullet_load_warnings():
 
 
 class HuskyChaserEnv(gym.Env):
-    def __init__(self, render_mode="direct"): # "gui" for visualization, "direct" for fast training
+    def __init__(self, render_mode="direct", runner_spawn_mode="random"): # "gui" for visualization, "direct" for fast training
         super().__init__()
         self.action_space = spaces.Box(low=-1, high=1, shape=(2,), dtype=np.float32)
 
@@ -63,6 +66,9 @@ class HuskyChaserEnv(gym.Env):
 
         self.render_mode = render_mode.lower()
         self.debug_perception = self.render_mode == "gui"
+        if runner_spawn_mode not in {"random", "front"}:
+            raise ValueError("runner_spawn_mode must be 'random' or 'front'")
+        self.runner_spawn_mode = runner_spawn_mode
 
         # Longer episodes give the chaser time to route around obstacles,
         # reacquire the runner, and finish the catch.
@@ -113,8 +119,13 @@ class HuskyChaserEnv(gym.Env):
         self.obstacle_line_ids = []
         self.obstacle_text_ids = []
 
-        # load YOLO model
-        self.yolo_model = YOLO("runs/detect/yolo_training/runner_detector_v2/weights/best.pt", verbose=False)
+        # Load YOLO model when available. PPO training/testing still works without it.
+        self.yolo_model = None
+        if YOLO is not None:
+            try:
+                self.yolo_model = YOLO("runs/detect/yolo_training/runner_detector_v2/weights/best.pt", verbose=False)
+            except Exception:
+                self.yolo_model = None
 
         self.last_runner_xy = np.array([0.0, 0.0], dtype=np.float32)
         self.runner_visible = False
@@ -136,6 +147,11 @@ class HuskyChaserEnv(gym.Env):
     # It returns the initial observation and an empty info dictionary.
     def reset(self, seed=None, options=None):
         super().reset(seed=seed)
+        options = options or {}
+        runner_spawn_mode = options.get("runner_spawn_mode", self.runner_spawn_mode)
+        if runner_spawn_mode not in {"random", "front"}:
+            raise ValueError("runner_spawn_mode must be 'random' or 'front'")
+
         p.resetSimulation()
         p.setGravity(0, 0, -9.81)
         p.setTimeStep(1.0 / 240.0)
@@ -201,27 +217,12 @@ class HuskyChaserEnv(gym.Env):
         p.changeVisualShape(self.chaser, -1, rgbaColor=[1, 0, 0, 1])
         self._configure_husky_dynamics(self.chaser)
         
-        # runner_pos = self._get_valid_spawn(reference_positions=[chaser_pos], min_distance=5.0)
         chaser_pos, chaser_orn = p.getBasePositionAndOrientation(self.chaser)
 
-        runner_pos = None
-
-        for _ in range(50):
-            candidate = self._spawn_in_front_of_chaser(chaser_pos, chaser_orn)
-
-            if self._is_valid_spawn(candidate, [chaser_pos], 2.0):
-                runner_pos = candidate
-                break
-
-        if runner_pos is None:
-            for _ in range(20):
-                candidate = chaser_pos + np.array([np.random.uniform(1.5, 3.0), np.random.uniform(-2, 2), 0])
-
-                if self._is_valid_spawn(candidate, [chaser_pos], 2.0):
-                    runner_pos = candidate
-                    break
-            else:
-                runner_pos = chaser_pos  # last-resort safe state
+        if runner_spawn_mode == "front":
+            runner_pos = self._get_front_runner_spawn(chaser_pos, chaser_orn)
+        else:
+            runner_pos = self._get_valid_spawn(reference_positions=[chaser_pos], min_distance=5.0)
 
         with suppress_pybullet_load_warnings():
             self.runner = p.loadURDF("husky/husky.urdf", basePosition=runner_pos)
@@ -250,6 +251,46 @@ class HuskyChaserEnv(gym.Env):
     # and prints their relative positions in the console.
     def get_camera_image(self):
         return self._get_camera_image(64, 64)
+
+    def get_camera_image_yolo(self):
+        return self._get_camera_image(640, 480)
+
+    def get_preview_image(self):
+        return self._get_camera_image(320, 240)
+
+    def _get_camera_image(self, width=64, height=64):
+        pos, orn = p.getBasePositionAndOrientation(self.chaser)
+        rot_matrix = p.getMatrixFromQuaternion(orn)
+        forward = [rot_matrix[0], rot_matrix[3], rot_matrix[6]]
+
+        cam_pos = [
+            pos[0] + forward[0] * 0.5,
+            pos[1] + forward[1] * 0.5,
+            pos[2] + 0.6,
+        ]
+        target = [
+            pos[0] + forward[0] * 3.0,
+            pos[1] + forward[1] * 3.0,
+            pos[2] + 0.4,
+        ]
+
+        view_matrix = p.computeViewMatrix(cam_pos, target, [0, 0, 1])
+        proj_matrix = p.computeProjectionMatrixFOV(
+            fov=60,
+            aspect=float(width) / float(height),
+            nearVal=0.1,
+            farVal=100.0,
+        )
+
+        _, _, rgb, _, _ = p.getCameraImage(
+            width=width,
+            height=height,
+            viewMatrix=view_matrix,
+            projectionMatrix=proj_matrix,
+            renderer=p.ER_BULLET_HARDWARE_OPENGL,
+        )
+        rgb = np.reshape(rgb, (height, width, 4))[:, :, :3]
+        return rgb.astype(np.uint8)
 
     # step function applies the action to the chaser, moves the runner, steps the simulation,
     # and calculates the reward and termination status.
@@ -361,6 +402,49 @@ class HuskyChaserEnv(gym.Env):
             )
             if clear_of_obstacles and clear_of_references:
                 return [pos[0], pos[1], 0.1]
+
+    def _spawn_in_front_of_chaser(self, chaser_pos, chaser_orn):
+        """Sample a runner spawn in the chaser camera's forward half-plane."""
+        yaw = self._yaw_from_orientation(chaser_orn)
+        forward = np.array([np.cos(yaw), np.sin(yaw)], dtype=np.float32)
+        lateral = np.array([-forward[1], forward[0]], dtype=np.float32)
+
+        distance = np.random.uniform(4.0, 8.0)
+        side_offset = np.random.uniform(-2.5, 2.5)
+        chaser_xy = np.asarray(chaser_pos[:2], dtype=np.float32)
+        runner_xy = chaser_xy + forward * distance + lateral * side_offset
+
+        return [float(runner_xy[0]), float(runner_xy[1]), 0.1]
+
+    def _get_front_runner_spawn(self, chaser_pos, chaser_orn):
+        for _ in range(50):
+            candidate = self._spawn_in_front_of_chaser(chaser_pos, chaser_orn)
+
+            if self._is_valid_spawn(candidate, [chaser_pos], 5.0):
+                return candidate
+
+        return self._get_valid_spawn(reference_positions=[chaser_pos], min_distance=5.0)
+
+    def _is_valid_spawn(self, pos, reference_positions=None, min_distance=0.0):
+        """Checks whether a proposed spawn is inside the arena and clear."""
+        reference_positions = reference_positions or []
+        xy = np.asarray(pos[:2], dtype=np.float32)
+        inner_boundary = self.boundary - 1.0
+
+        if np.any(xy < -inner_boundary) or np.any(xy > inner_boundary):
+            return False
+
+        clear_of_obstacles = all(
+            np.linalg.norm(xy - np.asarray(obs_pos, dtype=np.float32)) > 1.2
+            for obs_pos in self.obstacle_positions
+        )
+        if not clear_of_obstacles:
+            return False
+
+        return all(
+            np.linalg.norm(xy - np.asarray(ref[:2], dtype=np.float32)) >= min_distance
+            for ref in reference_positions
+        )
 
     def _configure_husky_dynamics(self, robot_id):
         p.changeDynamics(

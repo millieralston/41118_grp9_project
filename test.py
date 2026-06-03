@@ -25,6 +25,12 @@ def main():
         action="store_true",
         help="Print the model action every 30 steps while testing.",
     )
+    parser.add_argument(
+        "--runner-spawn-mode",
+        choices=("random", "front"),
+        default="random",
+        help="Use random PPO-style runner spawns or force the runner into the chaser camera view.",
+    )
     args = parser.parse_args()
 
     model_path = Path(args.model)
@@ -33,7 +39,7 @@ def main():
             f"Could not find {model_path}. Train the model first with: python train.py"
         )
 
-    env = HuskyChaserEnv(render_mode="gui")
+    env = HuskyChaserEnv(render_mode="gui", runner_spawn_mode=args.runner_spawn_mode)
     model = PPO.load(model_path)
 
     try:
