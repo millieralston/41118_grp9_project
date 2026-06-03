@@ -1,11 +1,7 @@
 import argparse
 from pathlib import Path
 
-<<<<<<< HEAD
 import cv2
-=======
-import numpy as np
->>>>>>> d589ca6 (This should be good and works)
 from stable_baselines3 import PPO
 from stable_baselines3.common.callbacks import BaseCallback, CallbackList, CheckpointCallback
 from stable_baselines3.common.env_util import make_vec_env
@@ -28,7 +24,6 @@ from husky_chaser_env import HuskyChaserEnv
 # you only want to verify that the pipeline starts.
 PREVIEW_FRAME_PATH = "preview_frame.png"
 TOTAL_TIMESTEPS = 120_000
-<<<<<<< HEAD
 
 
 class PreviewCallback(BaseCallback):
@@ -50,12 +45,6 @@ TENSORBOARD_LOG_DIR = "./husky_ppo_logs/"
 CHECKPOINT_DIR = "./checkpoints/"
 FINAL_MODEL_PATH = "husky_chaser_ppo_final"
 MODEL_DIR = Path("models")
-=======
-TENSORBOARD_LOG_DIR = "./husky_ppo_logs/" # tensorboard logs will be saved here, which can be visualized with: tensorboard --logdir=./husky_ppo_logs/
-CHECKPOINT_DIR = "./checkpoints/" # PPO model checkpoints will be saved here every 10,000 steps, which can be used to resume training or evaluate intermediate models.
-FINAL_MODEL_PATH = "husky_chaser_ppo_final" # The final trained PPO model will be saved to this path at the end of training.
-MODEL_DIR = Path("models") # Directory to save models, checkpoints, and logs. This keeps everything organized in one place.
->>>>>>> d589ca6 (This should be good and works)
 
 # This callback records custom task-specific metrics from the environment's info dict during training, 
 # and logs them to TensorBoard for visualization.
@@ -272,11 +261,7 @@ def main():
     try:
         model.learn(
             total_timesteps=args.timesteps,
-<<<<<<< HEAD
             callback=callback,
-=======
-            callback=callbacks,
->>>>>>> d589ca6 (This should be good and works)
             tb_log_name="ppo_husky_chaser_mlp",
         )
 
