@@ -14,6 +14,7 @@ except Exception:
     YOLO = None
 import cv2
 import numpy as np
+from perception import get_yolo_runner
 
 def run_demo(model_path="husky_chaser_ppo_final", num_episodes=5, steps_per_episode=1000, record=False, out_path=None):
     """
@@ -84,6 +85,18 @@ def run_demo(model_path="husky_chaser_ppo_final", num_episodes=5, steps_per_epis
                         annotated = cv2.cvtColor(cam_img, cv2.COLOR_RGB2BGR)
                     except Exception:
                         annotated = np.zeros((480, 640, 3), dtype=np.uint8)
+
+                runner_x, runner_y = get_yolo_runner(env)
+
+                cv2.putText(
+                    annotated,
+                    f"x={runner_x:.2f}",
+                    (20, 40),
+                    cv2.FONT_HERSHEY_SIMPLEX,
+                    1,
+                    (0, 255, 0),
+                    2
+                )
 
                 # make it easier to see
                 annotated = cv2.resize(annotated, (960, 720))
