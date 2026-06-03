@@ -21,8 +21,9 @@ from husky_chaser_env import HuskyChaserEnv
 # Longer training kept for reference.
 # TOTAL_TIMESTEPS = 200_000
 
-# PPO needs more than a smoke-test run to learn stable pursuit. Lower this if
-# you only want to verify that the pipeline starts.
+# PPO needs more than a smoke-test run to learn stable pursuit and obstacle
+# avoidance. 120k timesteps is the default training budget used here; lower it
+# only when checking that the pipeline starts.
 PREVIEW_FRAME_PATH = "preview_frame.png"
 TOTAL_TIMESTEPS = 120_000
 
@@ -47,21 +48,25 @@ CHECKPOINT_DIR = "./checkpoints/"
 FINAL_MODEL_PATH = "husky_chaser_ppo_final"
 MODEL_DIR = Path("models")
 
-# This callback records custom task-specific metrics from the environment's info dict during training, 
-# and logs them to TensorBoard for visualization.
+# PPO already logs generic learning values, but the project needs task-specific
+# evidence too. This callback records pursuit, capture, collision, wall, and
+# stuck metrics from the environment info dict so TensorBoard can show whether
+# reward shaping is improving the actual chase behavior.
 class TaskMetricsCallback(BaseCallback):
     """Record environment-specific pursuit and avoidance signals in TensorBoard."""
 
-    # These are the keys in the info dict that we want to track as continuous metrics 
-    # during training.
+    # Continuous rollout metrics show how behavior changes during training:
+    # distance should trend down, obstacle/wall clearance should stay healthy,
+    # and near_target should increase as the chaser learns to pressure the runner.
     CONTINUOUS_KEYS = (
         "distance_to_runner",
+        "chaser_movement",
         "min_obstacle_distance",
         "wall_clearance",
         "near_target",
     )
-    # These are the keys in the info dict that we want to track as episode-level metrics 
-    # during training.
+    # Episode flags summarize final outcomes: caught/is_success is the goal,
+    # while collision, fell_over, ended_stuck, and truncated describe failures.
     EPISODE_KEYS = (
         "collision",
         "caught",
@@ -142,8 +147,8 @@ class TaskMetricsCallback(BaseCallback):
 
         self._episode_collision_flags[env_idx] = 0.0
 
-# This function creates and returns a new instance of the HuskyChaserEnv environment,
-# which is used for training the PPO agent. The environment is set up in DIRECT mode for faster training without rendering the GUI.
+# Training uses PyBullet DIRECT mode for speed. Rendering is kept out of the
+# training loop except for the lightweight preview callback.
 def make_env():
     # Old environment setup kept for reference.
     # env = husky_env_neo.HuskyChaserEnv(render_mode="direct")
@@ -151,9 +156,9 @@ def make_env():
     # DIRECT mode runs PyBullet without opening the GUI, which is much faster for training.
     return HuskyChaserEnv(render_mode="direct")
 
-# The main function sets up the training pipeline for the PPO agent, 
-# including argument parsing, environment creation, model initialization,
-# and the training loop with callbacks for logging and checkpointing.
+# Main PPO training pipeline: create the vectorized environment, optionally
+# resume a saved policy, configure PPO for the vector observation policy, attach
+# callbacks, then train and save the final chaser model.
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -184,11 +189,12 @@ def main():
     # Old CNN/image observation wrapper kept for reference.
     # vec_env = VecTransposeImage(vec_env)
 
-    vec_env = VecMonitor(vec_env) # VecMonitor is a wrapper that keeps track of episode rewards, lengths, and other info, which is useful for logging and analysis during training.
+    # VecMonitor adds standard episode reward/length summaries around the custom
+    # info metrics emitted by HuskyChaserEnv.
+    vec_env = VecMonitor(vec_env)
 
-    # This block checks if there is an existing model checkpoint to resume from, either specified by the user or automatically detected, 
-    # and loads it if available. This allows for continued training from a previous state, which can be useful for long training runs 
-    # or if you want to fine-tune an existing model. If no checkpoint is found or if the user opts for a fresh start, it initializes a new PPO model.
+    # Resume logic supports long experiments. By default it continues from the
+    # final saved zip if present, unless --fresh-start is passed.
     auto_resume_path = Path(FINAL_MODEL_PATH).with_suffix(".zip")
     resume_from = args.resume_from
     if resume_from is None and not args.fresh_start and auto_resume_path.exists():
@@ -209,6 +215,8 @@ def main():
             # Old CNN/image policy kept for reference.
             # "CnnPolicy",
 
+            # MlpPolicy matches the compact 8-value observation vector from
+            # perception.py. The old CnnPolicy path is left above for reference.
             "MlpPolicy",
             vec_env,
             verbose=1,
@@ -218,21 +226,21 @@ def main():
             # n_steps=2048,
             # batch_size=128,
 
-            # Smaller rollouts give quicker feedback on a CPU laptop.
-            n_steps=512, # The number of steps to run for each environment per update. Shorter rollouts can lead to more frequent updates and faster learning, but may also increase variance in the updates.
-            batch_size=64, # The batch size determines how many samples from the rollout are used in each training update. Smaller batch sizes lead to more frequent updates and faster learning, but may also increase variance in the updates.
-            gamma=0.99, # Discount factor for future rewards. A value of 0.99 means the agent will consider rewards up to about 100 steps into the future, provides a good balance between short-term and long-term reward optimization.
-            gae_lambda=0.95, # GAE lambda parameter controls the bias-variance tradeoff in the advantage estimation. Provides a good balance between bias and variance, helps stabilize training and improve learning efficiency.
-            clip_range=0.2, # PPO clipping parameter controls how much policy changes at each update. Small values mean more conservative updates, while a larger value allows for more aggressive updates. balance learning speed and stability.
-            ent_coef=0.02, #increasing, increases exploration, but can lead to more unstable training. Adjust as needed.
-            vf_coef=0.5, # value function loss coefficient. Higher values for learning value function, helps with stability but slows policy learning. Adjust based on how well the value function is learning.
-            max_grad_norm=0.5, # prevents excessively large policy updates that can destabilize training.
-            device="auto", # Use GPU if available, otherwise CPU. This can speed up training significantly if you have a compatible GPU.
+            # Smaller rollouts give quicker feedback on a CPU laptop while
+            # still giving PPO enough samples to estimate pursuit advantages.
+            n_steps=512,
+            batch_size=64,
+            gamma=0.99,      # Long enough horizon to value route planning.
+            gae_lambda=0.95, # Stable advantage estimates for noisy physics.
+            clip_range=0.2,  # Conservative PPO policy updates.
+            ent_coef=0.02,   # Encourages exploration of turns/avoidance paths.
+            vf_coef=0.5,     # Balances value learning with policy learning.
+            max_grad_norm=0.5,
+            device="auto",
         )
 
-    # Set up callbacks for checkpointing and logging custom task metrics to TensorBoard. 
-    # The CheckpointCallback saves the model every 10,000 steps, 
-    # while the TaskMetricsCallback logs the custom metrics defined in the environment's info dict.
+    # Checkpoints preserve intermediate policies every 10k steps. The custom
+    # metrics and preview frame help explain training progress in the report.
     checkpoint_callback = CheckpointCallback(
         save_freq=10_000,
         save_path=CHECKPOINT_DIR,

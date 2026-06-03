@@ -3,7 +3,20 @@ from gymnasium import spaces
 import numpy as np
 import pybullet as p
 
-# describes the observation space format (a vector with 8 floating point values)
+"""
+Vision-based perception module for integrated CNN + PPO training experiments.
+
+This module extends the standard perception pipeline by replacing the
+ground-truth runner position with detections obtained from a YOLO object
+detector. Runner coordinates are extracted from camera images, normalised
+to the camera frame, and combined with visibility and confidence metrics
+to form a 10-dimensional observation vector.
+
+The module was developed to investigate vision-based reinforcement learning
+using camera observations rather than simulator ground-truth data.
+"""
+
+# describes the observation space format (a vector with 10 floating point values)
 def create_observation_space():
     # observation space vector layout
     # [runner_x, runner_y, runner_visible, runner_confidence, obstacle1_x, obstacle1_y, obstacle2_x, obstacle2_y, obstacle3_x, obstacle3_y]
@@ -27,29 +40,26 @@ def get_observation(env):
 
     runner_pos, _ = p.getBasePositionAndOrientation(env.runner)
 
-    # if debug:
-    #      env.runner_text_id =p.addUserDebugText(
-    #         "RUNNER",
-    #         runner_pos,
-    #         textColorRGB=[1, 0, 0],
-    #         replaceItemUniqueId=env.runner_text_id
-    #     )
+    if debug:
+         env.runner_text_id =p.addUserDebugText(
+            "RUNNER",
+            runner_pos,
+            textColorRGB=[1, 0, 0],
+            replaceItemUniqueId=env.runner_text_id
+        )
 
-    # if debug:
-    #     env.runner_line_id =p.addUserDebugLine(
-    #         chaser_pos,
-    #         runner_pos,
-    #         [1, 0, 0],   # red
-    #         lineWidth=3,
-    #         replaceItemUniqueId=env.runner_line_id
-    #     )
+    if debug:
+        env.runner_line_id =p.addUserDebugLine(
+            chaser_pos,
+            runner_pos,
+            [1, 0, 0],   # red
+            lineWidth=3,
+            replaceItemUniqueId=env.runner_line_id
+        )
 
     if env.use_yolo:
         runner_x, runner_y = get_yolo_runner(env)
 
-        # print(
-        #     f"YOLO runner: x={runner_x:.2f}, y={runner_y:.2f}"
-        # )
     else:
         runner_x, runner_y = get_relative_position(
             chaser_pos,
@@ -57,11 +67,7 @@ def get_observation(env):
             runner_pos
         )
 
-    # if debug:
-    #     print(f"Runner pos: ({runner_x:.2f}, {runner_y:.2f}) | ")
-
     observation.extend([runner_x, runner_y, float(env.runner_visible), float(env.runner_confidence)])
-    # observation.extend([runner_x, runner_y])
 
     closest_obstacles = get_closest_obstacles(env)
 
@@ -73,37 +79,27 @@ def get_observation(env):
 
     for i, (_, obs_x, obs_y, obs_world_pos) in enumerate(closest_obstacles):
         
-        # if debug:
-        #     # print(f"Obs pos: ({obs_x:.2f}, {obs_y:.2f})")
-        #     env.obstacle_line_ids[i] = p.addUserDebugLine(
-        #         chaser_pos,
-        #         obs_world_pos,
-        #         [0, 1, 0],   # green
-        #         lineWidth=2,
-        #         replaceItemUniqueId=env.obstacle_line_ids[i]
-        #     )
+        if debug:
+            env.obstacle_line_ids[i] = p.addUserDebugLine(
+                chaser_pos,
+                obs_world_pos,
+                [0, 1, 0],   # green
+                lineWidth=2,
+                replaceItemUniqueId=env.obstacle_line_ids[i]
+            )
 
-        #     env.obstacle_text_ids[i] = p.addUserDebugText(
-        #         f"OBS {i+1}",
-        #         obs_world_pos,
-        #         textColorRGB=[0, 1, 0],
-        #         replaceItemUniqueId=env.obstacle_text_ids[i]
-        #     )
+            env.obstacle_text_ids[i] = p.addUserDebugText(
+                f"OBS {i+1}",
+                obs_world_pos,
+                textColorRGB=[0, 1, 0],
+                replaceItemUniqueId=env.obstacle_text_ids[i]
+            )
 
         observation.extend([obs_x, obs_y])
 
     while len(observation) < 10:
         observation.append(0.0)
     
-    # while len(observation) < 8:
-    #     observation.extend([0.0, 0.0])
-
-    # print(
-    #     f"obs runner=({runner_x:.2f}, {runner_y:.2f}) "
-    #     f"visible={env.runner_visible} "
-    #     f"conf={env.runner_confidence:.2f}"
-    # )
-
     return np.array(observation, dtype=np.float32)
 
 # function to calculate the relative position of an object to a target (the chaser)
@@ -167,10 +163,6 @@ def get_yolo_runner(env):
             cls = int(box.cls[0])
             conf = float(box.conf[0])
 
-            # print(
-            #     f"class={cls}, conf={conf:.2f}"
-            # )
-
         # if runner visible
         if best_box is not None:
             x1, y1, x2, y2 = best_box
@@ -193,11 +185,6 @@ def get_yolo_runner(env):
 
             env.runner_visible = True
             env.runner_confidence = min(env.runner_confidence + 0.2, 1.0)
-
-            # print(
-            #     f"YOLO XY: ({runner_x:.2f}, {runner_y:.2f}) "
-            #     f"cache=({env.yolo_cache[0]:.2f}, {env.yolo_cache[1]:.2f})"
-            # )
 
         # if runner not visible
         else:

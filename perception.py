@@ -3,11 +3,27 @@ from gymnasium import spaces
 import numpy as np
 import pybullet as p
 
-# describes the observation space format (a vector with 8 floating point values)
-def create_observation_space():
-    # observation space vector layout
-    # [runner_x, runner_y, obstacle1_x, obstacle1_y, obstacle2_x, obstacle2_y, obstacle3_x, obstacle3_y]
+"""
+Perception module for the PPO training environment.
 
+This module constructs the agent's observation space using simulator
+ground-truth information. It computes the relative position of the runner
+and the three closest obstacles with respect to the chaser, returning an
+8-dimensional observation vector used by the reinforcement learning policy.
+
+The module also provides optional PyBullet debug visualisation and includes
+a YOLO-based runner detection function used for demonstration and
+visualisation purposes.
+"""
+
+# describes the observation space format (a vector with 8 floating point values)
+# PPO policy input. Instead of training from camera pixels, the MLP receives an
+# 8-value vector in the chaser's local frame:
+# [runner_x, runner_y, obstacle1_x, obstacle1_y, obstacle2_x, obstacle2_y,
+#  obstacle3_x, obstacle3_y].
+# Relative coordinates make the policy learn "where is the runner/obstacle
+# compared with me?" rather than memorizing absolute arena positions.
+def create_observation_space():
     return spaces.Box(
         low=-20,
         high=20,
@@ -15,7 +31,8 @@ def create_observation_space():
         dtype=np.float32
     )
 
-# returns the observation space vector for the current state of the environment (positions of runner and obstacles relative to the chaser)
+# Build the current PPO observation. The runner is always first, followed by up
+# to three closest obstacles; missing obstacle slots are padded with zeros.
 def get_observation(env):
     observation = []
     debug = getattr(env, "debug_perception", False)
@@ -42,11 +59,10 @@ def get_observation(env):
 
     runner_x, runner_y = get_relative_position(chaser_pos, chaser_orn, runner_pos)
 
-    # if debug:
-    #     print(f"Runner pos: ({runner_x:.2f}, {runner_y:.2f}) | ")
-
     observation.extend([runner_x, runner_y])
 
+    # Limit to the 3 closest obstacles to keep the MLP observation compact while
+    # still representing the immediate navigation problem.
     closest_obstacles = get_closest_obstacles(env)
 
     while len(env.obstacle_line_ids) < len(closest_obstacles):
@@ -55,11 +71,10 @@ def get_observation(env):
     while len(env.obstacle_text_ids) < len(closest_obstacles):
         env.obstacle_text_ids.append(-1)
 
-    # added debug visualization of the closest obstacles relative to the chaser, 
-    # which can help understand what the agent is perceiving and how it relates to its actions.
+    # GUI mode draws exactly what the policy receives: red runner line and green
+    # closest-obstacle lines in the chaser-relative observation frame.
     for i, (_, obs_x, obs_y, obs_world_pos) in enumerate(closest_obstacles):
         if debug:
-            # print(f"Obs pos: ({obs_x:.2f}, {obs_y:.2f})")
             env.obstacle_line_ids[i] = p.addUserDebugLine(
                 chaser_pos,
                 obs_world_pos,
@@ -74,14 +89,19 @@ def get_observation(env):
                 replaceItemUniqueId=env.obstacle_text_ids[i]
             )
 
-        observation.extend([obs_x, obs_y]) # relative position of the obstacle to the chaser, which is crucial for the agent to learn how to navigate around obstacles while pursuing the runner.
+        # Relative obstacle position lets PPO learn to steer around hazards
+        # while still chasing the runner.
+        observation.extend([obs_x, obs_y])
 
     while len(observation) < 8:
         observation.extend([0.0, 0.0])
 
     return np.array(observation, dtype=np.float32)
 
-# function to calculate the relative position of an object to a target (the chaser)
+# Convert a world position into the chaser's local frame. Positive x means
+# ahead of the chaser; y is left/right error. This is shared by observation,
+# reward alignment, reflex checks, and target assist, so all PPO signals use
+# the same geometry.
 def get_relative_position(reference_pos, reference_orn, target_pos):
     inv_pos, inv_orn = p.invertTransform(reference_pos, reference_orn)
 
@@ -91,7 +111,9 @@ def get_relative_position(reference_pos, reference_orn, target_pos):
 
     return rel_pos[0], rel_pos[1]
 
-# computing relative positions of all obstacles to the chaser, returns the 3 closest ones
+# Compute relative positions for all obstacles and return the three closest.
+# This keeps the policy focused on the hazards most likely to affect the next
+# few actions instead of overloading it with every tree and bench in the arena.
 def get_closest_obstacles(env, max_obstacles=3):
     chaser_pos, chaser_orn = p.getBasePositionAndOrientation(env.chaser)
 
