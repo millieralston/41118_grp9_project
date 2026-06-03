@@ -19,12 +19,14 @@ The main goal is to learn a robust pursuit policy that intercepts the runner whi
 - `train.py`: PPO training script for the chaser agent
 - `demo.py`: visual demo runner, now with optional video recording
 - `collect_yolo_dataset.py`: dataset collection script for YOLO training
+- `split_dataset.py`: script to automatically separate the training data into folders for model training/validation
 - `train_yolo.py`: YOLO model training script
-- `yolo_live_test.py`: live YOLO inference test in the simulation
+- `test_yolo.py`: script to assess trained YOLO model and obtain evaluation metrics
 - `perception.py`: observation extraction and perception utilities
 - `gui.py`: optional GUI components for project interaction
 - `checkpoints/`: saved PPO checkpoints
 - `husky_ppo_logs/`: TensorBoard training logs
+- `runs/`: saved trained YOLO model
 
 ## Setup
 
@@ -75,6 +77,34 @@ To force training from scratch:
 python train.py --fresh-start --timesteps 120000
 ```
 
+## Training the YOLO model
+
+Collect the initial dataset using:
+
+```bash
+python collect_yolo_dataset.py
+```
+
+This script:
+
+- gathers 3,500 labelled images for training
+- uses the PyBullet segmentation masks to identify and label the runner
+- attempts to filter out images where runner is heavily occluded
+
+To split the training dataset into 80% training, 20% validation:
+
+```bash
+python split_dataset.py
+```
+
+To run YOLO training:
+
+```bash
+python train_yolo.py
+```
+
+The model will be saved to the `runs/detect/yolo_training/` folder.
+
 ## Running the demo
 
 Run the trained model in a PyBullet GUI:
@@ -96,8 +126,10 @@ This demo captures the live camera view from the chaser and saves a video of the
 The project includes a YOLO perception path that is currently used for demonstrations and future integration:
 
 - `collect_yolo_dataset.py` captures simulated camera frames and segmentation-based labels for the runner.
+- `split_dataset.py` randomly separates the dataset into an 80/20 split for training and validation.
 - `train_yolo.py` fine-tunes a YOLO detector on the collected dataset.
-- `yolo_live_test.py` runs live YOLO inference in the PyBullet environment.
+
+There are additional validation scripts and tools that can be used to verify each step of the YOLO pipeline as well.
 
 The demo script expects YOLO weights at:
 
