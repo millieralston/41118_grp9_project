@@ -30,6 +30,8 @@
       <li>The runner follows a scripted policy to evade the chaser robot.</li>
       <li>The chaser is the training subject and pursues the runner.</li>
       <li>Implemented reward functions with both dense and sparse signals.</li>
+      <li>Trained the YOLO11 model to detect the runner using the chaser's camera feed.</li>
+      <li>Development of the YOLO and PPO integration pipeline, where the detected runner's position from YOLO is used to inform the PPO policy rather than using the runner's coordinates from the simulation.</li>
     </ul>
 
     <h2 class="title is-4">Reward function</h2>
