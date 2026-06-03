@@ -2,6 +2,7 @@ import argparse
 from pathlib import Path
 
 import cv2
+import numpy as np
 from stable_baselines3 import PPO
 from stable_baselines3.common.callbacks import BaseCallback, CallbackList, CheckpointCallback
 from stable_baselines3.common.env_util import make_vec_env
