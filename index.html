@@ -109,7 +109,7 @@
             <div class="Video">
               <!-- Video Link. -->
               <span class="link-block">
-                <a href="https://www.youtube.com/watch?v=MrKrnHhk8IA"
+                <a href="https://youtu.be/_HHGPB0dV6Y?si=VJys70MFYaNxcX3f"
                    class="external-link button is-normal is-rounded is-dark">
                   <span class="icon">
                       <i class="fab fa-youtube"></i>
@@ -231,12 +231,13 @@
       <div class="column is-four-fifths">
         <h2 class="title is-3">Video</h2>
         <div class="publication-video">
-          <iframe src="https://www.youtube.com/embed/MrKrnHhk8IA?rel=0&amp;showinfo=0"
-                  frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>
+          <iframe width="560" height="315" src="https://www.youtube.com/embed/_HHGPB0dV6Y?si=VJys70MFYaNxcX3f" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
         </div>
       </div>
     </div>
     <!--/ Paper video. -->
+
+    
   </div>
 </section>
 
@@ -245,9 +246,8 @@
   <div class="container is-max-desktop">
 
     <div class="columns is-centered">
-
       <!-- Reinforcement Learning. -->
-      <div class="column">
+      <div class="column is-full-width">
         <div class="content">
           <h2 class="title is-3">Reinforcement Learning</h2>
           <p>
@@ -275,9 +275,11 @@
         </div>
       </div>
       <!--/ Reinforcement Learning. -->
+    </div>
 
+    <div class="columns is-centered">
       <!-- YOLO/CNN. -->
-      <div class="column">
+      <div class="column is-full-width">
         <div class="content">
           <h2 class="title is-3">YOLO/CNN</h2>
           <p>
@@ -303,75 +305,13 @@
             <img src="./static/images/cnn1.webp" alt="CNN visualization" style="max-width:100%; height:auto; max-height:360px;" />
             <p class="is-size-7" style="margin-top:0.5rem;">CNN feature map / detection example</p>
           </div>
+          
+          
         </div>
       </div>
       <!--/ YOLO/CNN. -->
 
     </div>
-
-    <!-- Animation. -->
-    <div class="columns is-centered">
-      <div class="column is-full-width">
-        <h2 class="title is-3">Animation</h2>
-
-        <!-- Interpolating. -->
-        <h3 class="title is-4">Interpolating states</h3>
-        <div class="content has-text-justified">
-          <p>
-            We can also animate the scene by interpolating the deformation latent codes of two input
-            frames. Use the slider here to linearly interpolate between the left frame and the right
-            frame.
-          </p>
-        </div>
-        <div class="columns is-vcentered interpolation-panel">
-          <div class="column is-3 has-text-centered">
-            <img src="./static/images/interpolate_start.jpg"
-                 class="interpolation-image"
-                 alt="Interpolate start reference image."/>
-            <p>Start Frame</p>
-          </div>
-          <div class="column interpolation-video-column">
-            <div id="interpolation-image-wrapper">
-              Loading...
-            </div>
-            <input class="slider is-fullwidth is-large is-info"
-                   id="interpolation-slider"
-                   step="1" min="0" max="100" value="0" type="range">
-          </div>
-          <div class="column is-3 has-text-centered">
-            <img src="./static/images/interpolate_end.jpg"
-                 class="interpolation-image"
-                 alt="Interpolation end reference image."/>
-            <p class="is-bold">End Frame</p>
-          </div>
-        </div>
-        <br/>
-        <!--/ Interpolating. -->
-
-        <!-- Re-rendering. -->
-        <h3 class="title is-4">Re-rendering the input video</h3>
-        <div class="content has-text-justified">
-          <p>
-            Using <span class="dnerf">Nerfies</span>, you can re-render a video from a novel
-            viewpoint such as a stabilized camera by playing back the training deformations.
-          </p>
-        </div>
-        <div class="content has-text-centered">
-          <video id="replay-video"
-                 controls
-                 muted
-                 preload
-                 playsinline
-                 width="75%">
-            <source src="./static/videos/replay.mp4"
-                    type="video/mp4">
-          </video>
-        </div>
-        <!--/ Re-rendering. -->
-
-      </div>
-    </div>
-    <!--/ Animation. -->
 
 
     <!-- Results -->
@@ -381,28 +321,217 @@
 
         <div class="content has-text-justified">
           <p>
-            See the video excerpt below for a demo of the Husky chase intercepting the runner based on just our 
-            MLP policy.
+            This section presents the quantitative and qualitative outcomes of both the reinforcement learning
+            (PPO) component and the computer vision (YOLO) component of the TipBot system, followed by an
+            assessment of their combined integration.
           </p>
           <p>
-            Because each episode randomises start positions, obstacle layouts, and runner motion, TensorBoard 
-            metrics are noisy and should be treated as indicative trends rather than a single success criterion. 
-            We therefore pair the TensorBoard data with qualitative demo footage and secondary metrics such 
-            as <code>ep_len_mean</code>, collision counts, capture rate, and distance-to-runner behavior.
+            Because each episode randomises start positions, obstacle layouts, and runner motion, TensorBoard
+            metrics are noisy and should be treated as indicative trends rather than a single success criterion.
+            We therefore pair the TensorBoard data with qualitative demo footage and secondary metrics such
+            as <code>ep_len_mean</code>, collision counts, capture rate, and distance-to-runner behaviour.
           </p>
-          <div class="content has-text-centered">
-            <video id="demo-run-video"
-                   controls
-                   muted
-                   preload
-                   playsinline
-                   width="100%">
-              <source src="./static/videos/demo_run_no_yolo_h264.mp4"
-                      type="video/mp4">
+          <!-- Demo video -->
+          <div class="content has-text-centered" style="margin-top:1.5rem;">
+            <video id="demo-run-video" controls muted preload playsinline width="100%">
+              <source src="./static/videos/demo w yolo visualisation.mp4" type="video/mp4">
             </video>
-            <p class="is-size-7" style="margin-top:0.5rem;">Demo: MLP-only chaser behavior (no YOLO annotations)</p>
+            <p class="is-size-7" style="margin-top:0.5rem;">Demo: MLP-only chaser behaviour (no YOLO annotations)</p>
             <p class="is-size-7"><a href="./static/videos/demo_run_no_yolo_h264.mp4" download>Download MP4</a> if video won't play</p>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 1.1 PPO Training Performance -->
+    <div class="columns is-centered">
+      <div class="column is-full-width">
+        <h3 class="title is-4">PPO Training Performance</h3>
+        <div class="content has-text-justified">
+          <p>Three policy models — MLP 27, MLP 28, and MLP 29 — were trained over 120,000 timesteps and compared across key TensorBoard metrics. MLP 29 achieved the best overall result.</p>
+
+          <!-- Stat cards -->
+          <div class="columns" style="margin-top:1.5rem;">
+            <div class="column">
+              <div class="box has-text-centered">
+                <p class="heading">Success Rate</p>
+                <p class="title is-2" style="color:#485fc7;">71%</p>
+                <p class="is-size-7">Episodes where chaser caught runner (MLP 29)</p>
+              </div>
+            </div>
+            <div class="column">
+              <div class="box has-text-centered">
+                <p class="heading">Mean Reward</p>
+                <p class="title is-2" style="color:#48c78e;">1,420</p>
+                <p class="is-size-7">ep_rew_mean at end of training</p>
+              </div>
+            </div>
+            <div class="column">
+              <div class="box has-text-centered">
+                <p class="heading">Episode Length</p>
+                <p class="title is-2" style="color:#ffe08a; -webkit-text-stroke: 1px #b5a100;">597</p>
+                <p class="is-size-7">Mean steps per episode at convergence</p>
+              </div>
+            </div>
+          </div>
+
+          <h4 class="title is-5" style="margin-top:1.5rem;">Full Metrics Summary</h4>
+          <table class="table is-fullwidth is-striped is-hoverable">
+            <thead>
+              <tr><th>Metric</th><th>Value</th><th>Description</th></tr>
+            </thead>
+            <tbody>
+              <tr><td><code>ep_len_mean</code></td><td><strong>597 steps</strong></td><td>Mean episode length at training end</td></tr>
+              <tr><td><code>ep_rew_mean</code></td><td><strong>~1,420</strong></td><td>Mean episode reward at training end</td></tr>
+              <tr><td><code>success_rate</code></td><td><strong>0.71</strong></td><td>Proportion of episodes where chaser caught runner</td></tr>
+              <tr><td><code>distance_to_runner</code></td><td><strong>12.1 units</strong></td><td>Mean distance to runner across episode</td></tr>
+              <tr><td><code>min_obstacle_distance</code></td><td><strong>2.05 units</strong></td><td>Mean minimum clearance from obstacles</td></tr>
+              <tr><td><code>wall_clearance</code></td><td><strong>3.1 units</strong></td><td>Mean clearance from arena boundaries</td></tr>
+              <tr><td><code>chaser_movement</code></td><td><strong>0.0411</strong></td><td>Average movement metric per step</td></tr>
+              <tr><td><code>near_target</code></td><td><strong>0.0293</strong></td><td>Proportion of steps spent in close-range zone</td></tr>
+            </tbody>
+          </table>
+
+          <h4 class="title is-5" style="margin-top:1.5rem;">Training Curves</h4>
+          <p><strong>PPO Training Curves:</strong> Episode reward and episode length over time, showing convergence of the chaser pursuit policy.</p>
+          <div class="columns" style="margin-top:1rem;">
+            <div class="column has-text-centered">
+              <img src="./static/images/cnn_ep_rew_tensorboard.png" alt="PPO episode reward TensorBoard" style="max-width:100%; height:auto;" />
+              <p class="is-size-7">Episode Reward Mean (TensorBoard)</p>
+            </div>
+            <div class="column has-text-centered">
+              <img src="./static/images/cnn_ep_len_tensorboard.png" alt="PPO episode length TensorBoard" style="max-width:100%; height:auto;" />
+              <p class="is-size-7">Episode Length Mean (TensorBoard)</p>
+            </div>
+          </div>
+
+          <p>All three models exhibited a sharp decrease in episode length early in training before stabilising in the 480–600 step range. MLP 29 recorded the longest mean episode length (~600 steps), consistent with a policy that engages more exploration before committing to a capture — correlating with its higher eventual reward. MLP 28 underwent a significant reward collapse after ~80,000 timesteps, declining from a peak near 1,300 to under 900.</p>
+
+          <h4 class="title is-5" style="margin-top:1.5rem;">Success Rate — Model Comparison</h4>
+          <div style="margin: 1rem 0;">
+            <p class="is-size-7" style="margin-bottom:0.25rem;"><strong>MLP 29</strong></p>
+            <progress class="progress is-link" value="73" max="100" style="margin-bottom:0.25rem;"></progress>
+            <p class="is-size-7" style="margin-bottom:1rem; text-align:right;">73%</p>
+            <p class="is-size-7" style="margin-bottom:0.25rem;"><strong>MLP 27</strong></p>
+            <progress class="progress is-warning" value="70" max="100" style="margin-bottom:0.25rem;"></progress>
+            <p class="is-size-7" style="margin-bottom:1rem; text-align:right;">70%</p>
+            <p class="is-size-7" style="margin-bottom:0.25rem;"><strong>MLP 28</strong></p>
+            <progress class="progress is-info" value="47" max="100" style="margin-bottom:0.25rem;"></progress>
+            <p class="is-size-7" style="margin-bottom:1rem; text-align:right;">47%</p>
+          </div>
+
+          <article class="message is-success">
+            <div class="message-header"><p>Key Finding: Failure Modes</p></div>
+            <div class="message-body">
+              The <code>ended_stuck</code> and <code>fell_over</code> metrics remained effectively at zero across all runs throughout training. The obstacle avoidance shield and instability penalties functioned as intended — the chaser did not become immobilised by obstacles nor suffer kinematic instability in any meaningful proportion of episodes.
+            </div>
+          </article>
+
+          <h4 class="title is-5" style="margin-top:1.5rem;">Episode Behavioural Statistics (50-episode eval, MLP 29 final)</h4>
+          <table class="table is-fullwidth is-striped is-hoverable">
+            <thead>
+              <tr><th>Statistic</th><th>Min</th><th>Mean</th><th>Max</th><th>Std Dev</th></tr>
+            </thead>
+            <tbody>
+              <tr><td><strong>Episode Length (steps)</strong></td><td>113</td><td>491.3</td><td>1000</td><td>239.2</td></tr>
+              <tr><td><strong>Distance to Runner (m)</strong></td><td>2.23</td><td>8.73</td><td>20.81</td><td>4.09</td></tr>
+              <tr><td><strong>Reward per Episode</strong></td><td>&minus;1316.2</td><td>1341.0</td><td>2805.7</td><td>1091.1</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- 1.2 YOLO Detection Performance -->
+    <div class="columns is-centered">
+      <div class="column is-full-width">
+        <h3 class="title is-4">YOLO Detection Performance</h3>
+        <div class="content has-text-justified">
+          <p>The YOLOv11n model was trained on 3,500 synthetic PyBullet frames (80/20 train/validation split) for a single detection class: the runner robot. Training converged at approximately 50 epochs.</p>
+
+          <div class="columns" style="margin-top:1.5rem;">
+            <div class="column">
+              <div class="box has-text-centered">
+                <p class="heading">Precision</p>
+                <p class="title is-2" style="color:#48c78e;">&gt;99%</p>
+                <p class="is-size-7">Almost all positive predictions were correct</p>
+              </div>
+            </div>
+            <div class="column">
+              <div class="box has-text-centered">
+                <p class="heading">Recall</p>
+                <p class="title is-2" style="color:#48c78e;">&gt;99%</p>
+                <p class="is-size-7">Almost all true runners were detected</p>
+              </div>
+            </div>
+            <div class="column">
+              <div class="box has-text-centered">
+                <p class="heading">mAP50-95</p>
+                <p class="title is-2" style="color:#485fc7;">0.975</p>
+                <p class="is-size-7">Strong quality across IoU thresholds</p>
+              </div>
+            </div>
+          </div>
+
+          <h4 class="title is-5" style="margin-top:1.5rem;">Confusion Matrix</h4>
+          <table class="table is-fullwidth is-striped">
+            <thead><tr><th></th><th>Predicted: Runner</th><th>Predicted: Background</th></tr></thead>
+            <tbody>
+              <tr><td><strong>True: Runner</strong></td><td>508 TP</td><td>33 FN</td></tr>
+              <tr><td><strong>True: Background</strong></td><td>2 FP</td><td>—</td></tr>
+            </tbody>
+          </table>
+          <p>In-distribution recall ~93.9%, precision &gt;99.6%. False negatives were predominantly cases of heavy occlusion where the runner was partially blocked by obstacles.</p>
+
+          <div class="columns" style="margin-top:1rem;">
+            <div class="column has-text-centered">
+              <img src="./static/images/yolo_confusion_matrix.png" alt="YOLO confusion matrix" style="max-width:100%; height:auto;" />
+              <p class="is-size-7">Confusion Matrix</p>
+            </div>
+            <div class="column has-text-centered">
+              <img src="./static/images/yolo_BoxF1_curve.png" alt="YOLO F1 score curve" style="max-width:100%; height:auto;" />
+              <p class="is-size-7">F1 Score vs Confidence</p>
+            </div>
+          </div>
+          <div class="columns">
+            <div class="column has-text-centered">
+              <img src="./static/images/yolo_BoxPR_curve.png" alt="YOLO precision-recall curve" style="max-width:100%; height:auto;" />
+              <p class="is-size-7">Precision-Recall Curve</p>
+            </div>
+            <div class="column has-text-centered">
+              <img src="./static/images/yolo_val_batch0_labels.jpg" alt="YOLO validation batch with labels" style="max-width:100%; height:auto;" />
+              <p class="is-size-7">Validation Batch Labels</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 1.3 CNN-RL Integration -->
+    <div class="columns is-centered">
+      <div class="column is-full-width">
+        <h3 class="title is-4">CNN&ndash;RL Integration Results</h3>
+        <div class="content has-text-justified">
+          <p>Two training runs (MLP 2 and MLP 4) were conducted with YOLO-derived normalised positional observations substituted into the PPO observation space in place of simulator ground-truth coordinates.</p>
+
+          <article class="message is-warning">
+            <div class="message-header"><p>Result</p></div>
+            <div class="message-body">
+              Neither run achieved stable convergence. MLP 2 reached a smoothed final reward of approximately &minus;7.4; MLP 4 trended to approximately &minus;279. This stands in stark contrast to the ground-truth PPO runs which exceeded +1,400.
+            </div>
+          </article>
+
+          <table class="table is-fullwidth is-striped is-hoverable">
+            <thead>
+              <tr><th>Run</th><th>Smoothed Final Reward</th><th>Training Duration</th><th>Outcome</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>MLP 2 (YOLO obs.)</td><td>&minus;7.4</td><td>120,320 steps / 3.11 hrs</td><td>Oscillated near zero; no convergence</td></tr>
+              <tr><td>MLP 4 (YOLO obs.)</td><td>&minus;279</td><td>120,320 steps / 3.12 hrs</td><td>Continued decline after 90k steps</td></tr>
+              <tr><td><strong>MLP 29 (Ground truth)</strong></td><td><strong>+1,420</strong></td><td>120,000 steps</td><td>Stable convergence; 71% success rate</td></tr>
+            </tbody>
+          </table>
+          <p>As a consequence, the final deployed system retained simulator ground-truth positions for runner tracking, with YOLO used solely as a visual overlay for demonstration purposes.</p>
         </div>
       </div>
     </div>
@@ -412,83 +541,115 @@
     <div class="columns is-centered">
       <div class="column is-full-width">
         <h2 class="title is-3">Discussion</h2>
+      </div>
+    </div>
 
+    <div class="columns is-centered">
+      <div class="column is-full-width">
+        <h3 class="title is-4">PPO Policy Effectiveness</h3>
         <div class="content has-text-justified">
-          <h3 class="title is-4">Overview of Approach</h3>
-          <p>
-            This project combines two complementary learning systems: a convolutional
-            neural network-based visual detector to estimate the runner's position from
-            raw camera images, and a reinforcement learning (PPO) agent that converts
-            perceived information into continuous wheel commands to pursue and intercept
-            the runner in a cluttered simulated environment.
-          </p>
+          <p>The PPO-based pursuit policy demonstrated robust target interception capability within the randomised PyBullet environment, achieving a 71% success rate and consistent reward growth across training. The policy's ability to navigate a dynamic arena with randomised obstacle placement, start positions, and runner headings — without ever falling over or getting permanently stuck — validates the core reinforcement learning approach.</p>
+          <p>The reward shaping design proved effective overall. The progress-based reward (scaled by &times;60) provided a strong primary learning signal, while the close-range bonus (1.8&times; within 5.0 units) and capture bonus (+800 within 2.3 units) established a clear reward gradient guiding the agent through approach and interception phases.</p>
+          <article class="message is-warning">
+            <div class="message-header"><p>Key Limitation</p></div>
+            <div class="message-body">
+              The policy's reliance on supplementary heuristics — the obstacle avoidance shield and close-range assist — constrains how much emergent pursuit behaviour PPO can develop autonomously. The close-range assist in particular may suppress the development of more sophisticated interception strategies the policy could otherwise learn.
+            </div>
+          </article>
+        </div>
+      </div>
+    </div>
 
-          <h3 class="title is-4">YOLO / CNN Perception Pipeline</h3>
-          <p>
-            We implemented an automated visual perception pipeline using a YOLO detector
-            trained on synthetic frames rendered from the chaser's onboard simulated camera.
-            The detector runs during demonstrations to annotate bounding boxes on live frames
-            and to provide target estimates for downstream processing.
-          </p>
+    <div class="columns is-centered">
+      <div class="column is-full-width">
+        <h3 class="title is-4">YOLO Detection Quality &amp; Its Limitations for Control</h3>
+        <div class="content has-text-justified">
+          <p>Despite achieving near-perfect validation accuracy, the YOLOv11n model proved insufficient for direct integration into the PPO observation space. This result — while initially surprising given the metrics — is consistent with known challenges in perception-to-control transfer. Several factors likely contributed:</p>
+          <ul>
+            <li><strong>Observation noise sensitivity:</strong> PPO's MLP policy was trained on clean ground-truth coordinates. Even small YOLO-derived positional errors introduce distributional shift the policy is not robust to, causing reward collapse.</li>
+            <li><strong>Temporal inconsistency:</strong> YOLO operates frame-by-frame without temporal smoothing. The resulting jitter in the normalised position estimate produces non-stationary noise that destabilises PPO's value function.</li>
+            <li><strong>Occlusion events:</strong> Missed detections behind obstacles cause the position signal to temporarily disappear. Without a fallback, the policy receives a zero or stale observation outside its training distribution.</li>
+            <li><strong>Domain gap within simulation:</strong> Camera angle, lighting, and obstacle configurations during live PPO rollouts may differ subtly from the training distribution, amplifying error rates beyond validation metrics.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
 
-          <h4 class="title is-5">Dataset collection and preparation</h4>
-          <p>
-            A custom collection script captured approximately 3,500 frames from the
-            simulation, saving RGB images alongside pixel-level segmentation masks from
-            PyBullet. Ground-truth runner bounding boxes were extracted from segmentation
-            masks and converted to YOLO-format labels. To improve label quality we filtered
-            out ambiguous frames (for example, those containing only wheel pixels or where
-            the runner was heavily occluded), ensuring the training set better represented
-            true runner appearances across varied distances and lateral offsets.
-          </p>
+    <div class="columns is-centered">
+      <div class="column is-full-width">
+        <h3 class="title is-4">Integration Architecture: Lessons Learned</h3>
+        <div class="content has-text-justified">
+          <p>The core challenge exposed by this project is the mismatch between the requirements of a high-performing visual detector and those of a stable RL observation source. A detector optimised for accuracy under static evaluation conditions does not automatically satisfy the temporal consistency, completeness, and low-variance requirements of a policy's observation stream.</p>
+          <article class="message is-info">
+            <div class="message-header"><p>Future Architecture Recommendations</p></div>
+            <div class="message-body">
+              Apply temporal tracking (Kalman filtering or SORT) to smooth YOLO detections and provide continuity during occlusion. Train PPO from scratch with YOLO observations rather than substituting into a pre-trained policy. Augment the YOLO training dataset with obstacle classes to reduce occlusion-related false negatives.
+            </div>
+          </article>
+          <p>The project highlights a broader design lesson: in hybrid RL–vision systems, the interface between perception and control is often the most fragile component. The quality of the learned detector is a necessary but insufficient condition — the representation and reliability of the signal passed to the policy matters as much as raw detection accuracy.</p>
+        </div>
+      </div>
+    </div>
 
-          <h4 class="title is-5">Model training and inference</h4>
-          <p>
-            The YOLO model was fine-tuned on the collected dataset (50 epochs with early
-            stopping). During demo runs the trained detector processes live camera frames
-            to produce bounding boxes; these are post-processed to estimate the runner's
-            position in the chaser's local frame when required. This design enforces the
-            project constraint that the agent must estimate target position from vision
-            rather than being given it directly in the observation space.
-          </p>
+    <div class="columns is-centered">
+      <div class="column is-full-width">
+        <h3 class="title is-4">System-Level Assessment</h3>
+        <div class="content has-text-justified">
+          <p>Taken together, TipBot demonstrates a successful proof-of-concept for RL-based target interception in a simulated environment, with a well-trained visual perception module that is functionally ready for further integration work. The 71% success rate across randomised episodes is a strong baseline, particularly given the relatively short training budget of 120,000 timesteps and the complexity of the obstacle-filled arena.</p>
+          <p>The failure to achieve stable vision-in-the-loop control is a meaningful negative result that clarifies the next engineering steps rather than undermining the system's foundations. Scaling training to 500,000 timesteps with <code>n_steps=1024</code>, combined with object tracking and end-to-end vision-based policy training, represents a credible roadmap toward a fully autonomous perception-driven interception agent.</p>
+        </div>
+      </div>
+    </div>
 
-          <h3 class="title is-4">Integration with the RL Policy</h3>
-          <p>
-            The perception outputs are consumed by the agent pipeline rather than being
-            supplied as privileged ground-truth. In the current demo the YOLO stream runs
-            in parallel with the PPO agent: detection results are visualised live, and
-            converted coordinates can be used to replace or augment the compact observation
-            vector produced by the perception module. This separation allows the RL training
-            loop to remain focused on control while preserving an end-to-end perception
-            pathway for later experiments.
-          </p>
-
-          <h3 class="title is-4">Reinforcement Learning Training Summary</h3>
-          <p>
-            Training uses Proximal Policy Optimisation (PPO) from Stable Baselines3 with
-            an MLP policy on a compact observation vector (runner position + nearest
-            obstacle features). Episodes randomise obstacle placement and spawns to improve
-            generalisation. The reward function combines progress-to-runner, close-range
-            amplification, stability penalties (roll/pitch), and collision penalties, with
-            a large terminal capture bonus to prioritise successful interceptions.
-          </p>
-          <p>
-            For practical training on desktop hardware the environment runs in DIRECT mode,
-            training with single-environment vectorisation due to PyBullet's global API.
-            Checkpointing and a preview-frame callback are used for monitoring, and the
-            training loop supports resuming from saved models to iteratively improve policies.
-          </p>
-
+    <div class="columns is-centered">
+      <div class="column is-full-width">
+        <h3 class="title is-4">Limitations Summary</h3>
+        <div class="content">
+          <table class="table is-fullwidth is-striped is-hoverable">
+            <thead>
+              <tr><th>Component</th><th>Limitation</th><th>Impact</th></tr>
+            </thead>
+            <tbody>
+              <tr><td><strong>PPO Policy</strong></td><td>Relies on obstacle avoidance shield and close-range assist heuristics</td><td>Limits emergence of fully autonomous pursuit behaviour</td></tr>
+              <tr><td><strong>PPO Policy</strong></td><td>Wall/boundary not included in observation vector</td><td>Potential for boundary-adjacent suboptimal behaviour</td></tr>
+              <tr><td><strong>PPO Policy</strong></td><td>Only 120,000 training timesteps</td><td>Policy may not have fully converged</td></tr>
+              <tr><td><strong>YOLO Detector</strong></td><td>Single class (runner only); no obstacle awareness</td><td>Increases false negatives in occluded scenarios</td></tr>
+              <tr><td><strong>YOLO Detector</strong></td><td>Frame-by-frame detection; no temporal tracking</td><td>Positional jitter unsuitable for direct control</td></tr>
+              <tr><td><strong>CNN&ndash;RL Integration</strong></td><td>Direct substitution into pre-trained PPO policy</td><td>Observation distribution mismatch; no convergence</td></tr>
+              <tr><td><strong>Simulation</strong></td><td>Trained and tested entirely in PyBullet</td><td>Uncertain real-world transferability (sim-to-real gap)</td></tr>
+            </tbody>
+          </table>
         </div>
       </div>
     </div>
     <!--/ Discussion. -->
 
+    <!-- Conclusion -->
+    <div class="columns is-centered">
+      <div class="column is-full-width">
+        <h2 class="title is-3">Conclusion</h2>
+        <div class="content has-text-justified">
+          <p>TipBot successfully demonstrated ground-based target interception through a combination of Proximal Policy Optimisation and YOLOv11n computer vision in a PyBullet simulation environment. The PPO agent achieved a <strong>71% interception success rate</strong> across randomised episodes with zero stuck or fall-over failures, confirming the viability of the RL-based pursuit approach. The YOLO detector achieved near-perfect validation accuracy (mAP50 &gt; 0.99), establishing a high-quality visual perception pipeline.</p>
+          <p>The primary unresolved challenge is the stable integration of vision-based observations into the policy's control loop. The instability observed in CNN–RL joint training underscores that detection quality and control-compatible signal reliability are distinct requirements that must both be satisfied. Addressing this through object tracking, increased training scale, and end-to-end vision-policy co-training represents the clearest path to a fully autonomous, perception-driven interception system.</p>
+          <article class="message is-success">
+            <div class="message-header"><p>Next Steps</p></div>
+            <div class="message-body">
+              Scale PPO training to 500,000 timesteps (<code>n_steps=1024</code>) &nbsp;&middot;&nbsp;
+              Apply Kalman/SORT tracking to YOLO outputs &nbsp;&middot;&nbsp;
+              Train end-to-end with vision observations &nbsp;&middot;&nbsp;
+              Add obstacle classes to YOLO dataset &nbsp;&middot;&nbsp;
+              Reduce reliance on hardcoded heuristics
+            </div>
+          </article>
+        </div>
+      </div>
+    </div>
+    <!--/ Conclusion. -->
+
     <!-- Reflection -->
     <div class="columns is-centered">
       <div class="column is-full-width">
         <h2 class="title is-3">Reflection</h2>
-
         <div class="content has-text-justified">
           <p>
             This project was a rewarding exploration of integrating reinforcement learning

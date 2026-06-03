@@ -1,34 +1,49 @@
 # TipBot AI Project
 
-TipBot is a group project from UTS AI in Robotics (Group 9) that combines reinforcement learning and vision-based perception to train a Husky robot to chase a second Husky target inside a PyBullet environment.
+TipBot is a group project from UTS 41118 AI in Robotics (Group 9) that combines reinforcement learning and vision-based perception to train a Husky robot to chase a second Husky target inside a PyBullet simulation.
 
-## Project summary
+**Authors:** Millie Ralston, Eliza Tam, Melroop Nijjar
+
+## Project Summary
 
 This repository contains a simulated autonomous pursuit system in which:
 
 - a **chaser** Husky robot is controlled by a PPO agent,
-- a **runner** Husky robot follows a scripted escape policy,
+- a **runner** Husky robot follows a scripted evasion policy,
 - the environment includes randomly placed obstacles inside a bounded arena,
-- a CNN-based visual pipeline is used to detect the runner from the chaser's onboard camera.
+- a YOLOv11 visual pipeline detects the runner from the chaser's onboard camera.
 
-The main goal is to learn a robust pursuit policy that intercepts the runner while avoiding obstacles, using shaped rewards and a compact perception vector.
+The chaser learns a robust pursuit policy using shaped rewards and a compact 10-dimensional perception vector derived from both simulation state and YOLO detections.
 
-## Repository structure
+## Repository Structure
 
-- `husky_chaser_env.py`: main gym environment variant for the pursuit task
-- `train.py`: PPO training script for the chaser agent
-- `demo.py`: visual demo runner, now with optional video recording
-- `collect_yolo_dataset.py`: dataset collection script for YOLO training
-- `train_yolo.py`: YOLO model training script
-- `yolo_live_test.py`: live YOLO inference test in the simulation
-- `perception.py`: observation extraction and perception utilities
-- `gui.py`: optional GUI components for project interaction
-- `checkpoints/`: saved PPO checkpoints
-- `husky_ppo_logs/`: TensorBoard training logs
+| File | Description |
+|------|-------------|
+| `husky_chaser_env.py` | Main Gymnasium environment for the pursuit task |
+| `husky_env.py` | Alternate environment variant |
+| `train.py` | PPO training script (MLP policy) |
+| `demo.py` | Visual demo with optional video recording and YOLO overlay |
+| `perception.py` | Observation extraction: runner position + 3 nearest obstacles |
+| `perception_yolo.py` | YOLO-based runner detection perception module |
+| `gui.py` | GUI launcher for training monitoring |
+| `collect_yolo_dataset.py` | Simulated camera frame capture for YOLO dataset |
+| `split_dataset.py` | Train/val dataset split utility |
+| `train_yolo.py` | Fine-tunes YOLOv11n on collected dataset |
+| `yolo_live_test.py` | Live YOLO inference inside PyBullet |
+| `visualise_yolo.py` | Visualises YOLO bounding box labels on dataset images |
+| `evaluate_policies.py` | Runs trained policy for N episodes and collects metrics |
+| `extract_training_metrics.py` | Extracts convergence metrics from TensorBoard logs |
+| `run_metrics_collection.sh` | Shell script to run full metrics pipeline |
+| `test.py` / `test_yolo.py` | Development test scripts |
+| `checkpoints/` | PPO step checkpoints saved during training |
+| `husky_ppo_logs/` | TensorBoard training logs |
+| `husky_chaser_ppo_final.zip` | Final trained model |
+| `husky.urdf` | Husky robot URDF model |
+| `dataset.yaml` | YOLO dataset configuration |
 
 ## Setup
 
-1. Activate the repository virtual environment:
+1. Activate the virtual environment:
 
 ```bash
 source venv/bin/activate
@@ -40,97 +55,132 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-If `requirements.txt` is not available or incomplete, install the main packages:
+Core packages:
 
 ```bash
-pip install gymnasium pybullet stable-baselines3 opencv-python ultralytics torch torchvision
+pip install gymnasium pybullet stable-baselines3 opencv-python ultralytics torch torchvision tensorboard
 ```
 
-> Note: `ultralytics` is only required for YOLO annotation in the demo. The demo can still run without it, but it will show raw camera frames instead of annotated detections.
+> `ultralytics` is required for YOLO annotations in the demo. The demo runs without it but shows raw camera frames instead.
 
-## Training the PPO agent
-
-Train the RL agent using:
+## Training the PPO Agent
 
 ```bash
 python train.py --timesteps 120000
 ```
 
 This script:
-
-- creates the `HuskyChaserEnv` in `direct` mode for fast training,
+- creates `HuskyChaserEnv` in `direct` mode for fast training,
 - uses Stable Baselines3 PPO with an MLP policy,
-- saves checkpoints every 10,000 timesteps,
-- writes a final model to `husky_chaser_ppo_final.zip`.
+- saves checkpoints every 10,000 timesteps to `checkpoints/`,
+- writes the final model to `husky_chaser_ppo_final.zip`.
 
-To resume training from a saved model:
+**Resume from a checkpoint:**
 
 ```bash
 python train.py --resume husky_chaser_ppo_final.zip
 ```
 
-To force training from scratch:
+**Force fresh training:**
 
 ```bash
 python train.py --fresh-start --timesteps 120000
 ```
 
-## Running the demo
-
-Run the trained model in a PyBullet GUI:
+## Running the Demo
 
 ```bash
 python demo.py --model husky_chaser_ppo_final --episodes 5
 ```
 
-To record the demo to an MP4 file:
+**Record to MP4:**
 
 ```bash
 python demo.py --model husky_chaser_ppo_final --episodes 5 --record --out recordings/demo_run.mp4
 ```
 
-This demo captures the live camera view from the chaser and saves a video of the running episode. If `ultralytics` is installed and YOLO weights are available, the recorded video will include annotated detection boxes.
+If YOLO weights are present at `runs/detect/yolo_training/runner_detector_v2/weights/best.pt`, the recording will include annotated detection boxes.
 
-## YOLO dataset and detection
-
-The project includes a YOLO perception path that is currently used for demonstrations and future integration:
-
-- `collect_yolo_dataset.py` captures simulated camera frames and segmentation-based labels for the runner.
-- `train_yolo.py` fine-tunes a YOLO detector on the collected dataset.
-- `yolo_live_test.py` runs live YOLO inference in the PyBullet environment.
-
-The demo script expects YOLO weights at:
+## YOLO Dataset and Detection
 
 ```bash
-runs/detect/yolo_training/runner_detector_v2/weights/best.pt
+# Collect dataset frames from simulation
+python collect_yolo_dataset.py
+
+# Split into train/val
+python split_dataset.py
+
+# Train YOLOv11n detector
+python train_yolo.py
+
+# Test live inference
+python yolo_live_test.py
 ```
 
-If those weights are missing, the demo will still run without YOLO annotations.
+## Evaluating the Policy
 
-## Notes
-
-- The current training pipeline uses a compact observation vector from `perception.py`, not the raw 64×64 image directly.
-- The environment randomizes obstacles, runner spawn, and chaser spawn to improve generalization.
-- The reward is shaped to encourage progress toward the runner, penalize collisions, and reward capture with a large terminal bonus.
-
-## Useful commands
+Run evaluation across 50 episodes and save results to JSON:
 
 ```bash
-source venv/bin/activate
-python train.py --timesteps 120000
-python demo.py --model husky_chaser_ppo_final --episodes 5
-python demo.py --model husky_chaser_ppo_final --episodes 5 --record --out recordings/demo_run.mp4
+python evaluate_policies.py --episodes 50
 ```
+
+Results are written to `evaluation_results.json`.
+
+**With GUI rendering:**
+
+```bash
+python evaluate_policies.py --episodes 50 --render
+```
+
+**Full metrics pipeline (evaluation + TensorBoard extraction):**
+
+```bash
+bash run_metrics_collection.sh 50
+```
+
+## Evaluation Results
+
+Evaluated on `husky_chaser_ppo_final.zip` over 50 episodes:
+
+| Metric | Value |
+|--------|-------|
+| Capture Rate | 72.0% |
+| Mean Distance to Runner | 8.73 m |
+| Collision Rate | 44.0% |
+| Mean Episode Length | 491.3 steps |
+| Mean Episode Reward | 1341.0 |
+
+| Statistic | Min | Mean | Max | Std |
+|-----------|-----|------|-----|-----|
+| Episode Length (steps) | 113 | 491.3 | 1000 | 239.2 |
+| Distance to Runner (m) | 2.23 | 8.73 | 20.81 | 4.09 |
+| Reward per Episode | −1316.2 | 1341.0 | 2805.7 | 1091.1 |
+
+## Reward Function
+
+| Signal | Value |
+|--------|-------|
+| Catch bonus | +800 |
+| Distance shaping (per step) | −0.8 × distance |
+| Obstacle/wall proximity | −5.0 |
+| Stuck penalty | −5.0 |
+
+## Viewing TensorBoard Logs
+
+```bash
+tensorboard --logdir ./husky_ppo_logs/
+```
+
+Then open `http://localhost:6006`.
 
 ## Citation
-
-If you use this work or adapt it in your own project, please cite:
 
 ```bibtex
 @misc{tipbot2026,
   title={TipBot: Reinforcement Learning for Robotic Target Interception},
-  author={Melroop and Millie and Eliza},
+  author={Millie Ralston and Eliza Tam and Melroop Nijjar},
   year={2026},
-  institution={UTS, AI in Robotics, Group 9}
+  institution={UTS, 41118 AI in Robotics, Group 9}
 }
 ```
