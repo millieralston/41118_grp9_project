@@ -6,6 +6,14 @@ from stable_baselines3 import PPO
 
 from husky_chaser_env import HuskyChaserEnv
 
+# Summary of the test script:
+# 1. Parses command-line arguments for model path, number of episodes, action printing, and runner spawn mode.
+# 2. Loads the specified PPO model and initializes the HuskyChaserEnv in GUI mode.
+# 3. Runs the specified number of test episodes, where in each episode:
+#    - Resets the environment and initializes total reward and step count.
+#    - In a loop, predicts the action using the model, steps the environment, accumulates rewards, and checks for episode termination.
+#    - Optionally prints the action every 30 steps.     
+# 4. Handles keyboard interruption gracefully and ensures the environment is closed properly.
 
 def main():
     parser = argparse.ArgumentParser()
